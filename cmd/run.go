@@ -1,14 +1,18 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/pinheirolucas/discord_instants_player/bot"
+	"github.com/pinheirolucas/discord_instants_player/server"
 )
 
 var conn *discordgo.VoiceConnection
@@ -27,14 +31,44 @@ func run(cmd *cobra.Command, args []string) error {
 
 	owner := viper.GetString("owner")
 
-	b, err := bot.New(token, bot.WithOwner(owner))
+	host := viper.GetString("host")
+	if strings.TrimSpace(host) == "" {
+		return errors.New("host not provided")
+	}
+
+	port := viper.GetInt("port")
+	if port == 0 {
+		return errors.New("port not provided")
+	}
+
+	address := fmt.Sprintf("%s:%d", host, port)
+
+	errchan := make(chan error, 1)
+	playchan := make(chan string, 1)
+
+	b, err := bot.New(token, playchan, bot.WithOwner(owner))
 	if err != nil {
 		return errors.Wrap(err, "failed to create a bot")
 	}
 
-	if err := b.Start(); err != nil {
-		return err
-	}
+	go func() {
+		if err := b.Start(); err != nil {
+			errchan <- err
+		}
+	}()
+
+	s := server.New(playchan)
+
+	go func() {
+		if err := s.Start(address); err != nil {
+			errchan <- err
+		}
+	}()
+
+	err = <-errchan
+
+	log.Info().Msg(err.Error())
+	time.Sleep(time.Second * 3)
 
 	return nil
 }

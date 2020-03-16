@@ -13,17 +13,19 @@ import (
 )
 
 type Bot struct {
-	token  string
-	owner  string
-	client *discordgo.Session
-	vc     *discordgo.VoiceConnection
-	disp   *dispatcher.Dispatcher
+	token       string
+	owner       string
+	playChannel chan string
+	client      *discordgo.Session
+	vc          *discordgo.VoiceConnection
+	disp        *dispatcher.Dispatcher
 }
 
-func New(token string, options ...Option) (*Bot, error) {
+func New(token string, playChannel chan string, options ...Option) (*Bot, error) {
 	b := &Bot{
-		token: token,
-		disp:  dispatcher.New(),
+		token:       token,
+		disp:        dispatcher.New(),
+		playChannel: playChannel,
 	}
 
 	b.disp.Register("!ping", "Teste para verificar se o bot está online", b.ping)
@@ -63,17 +65,30 @@ func (b *Bot) Start() error {
 		b.vc.Close()
 	}()
 
+	go func() {
+		for {
+			path := <-b.playChannel
+
+			if b.vc == nil {
+				continue
+			}
+
+			log.Info().Str("path", path).Msg("playing instant")
+			dgvoice.PlayAudioFile(b.vc, path, make(chan bool))
+		}
+	}()
+
 	log.Info().Msg("bot is now running")
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
-	return nil
+	return errors.New("application is shutting down")
 }
 
 func (b *Bot) handleReady(s *discordgo.Session, r *discordgo.Ready) {
-	log.Info().Msg("Bot is ready.")
+	log.Info().Msg("bot is ready")
 }
 
 func (b *Bot) handleMessages(s *discordgo.Session, m *discordgo.MessageCreate) {

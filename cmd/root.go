@@ -38,6 +38,12 @@ func init() {
 
 	rootCmd.PersistentFlags().String("token", "", "bot token to bind the application")
 	viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("token"))
+
+	rootCmd.PersistentFlags().String("host", "", "host to bind the http server")
+	viper.BindPFlag("host", rootCmd.PersistentFlags().Lookup("host"))
+
+	rootCmd.PersistentFlags().Int("port", 0, "port to bind the http server")
+	viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 }
 
 func initConfig() {
