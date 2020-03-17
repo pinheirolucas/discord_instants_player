@@ -13,19 +13,21 @@ import (
 )
 
 type Bot struct {
-	token       string
-	owner       string
-	playChannel chan string
-	client      *discordgo.Session
-	vc          *discordgo.VoiceConnection
-	disp        *dispatcher.Dispatcher
+	token             string
+	owner             string
+	playChannel       chan string
+	audioEndedChannel chan bool
+	client            *discordgo.Session
+	vc                *discordgo.VoiceConnection
+	disp              *dispatcher.Dispatcher
 }
 
-func New(token string, playChannel chan string, options ...Option) (*Bot, error) {
+func New(token string, playChannel chan string, audioEndedChannel chan bool, options ...Option) (*Bot, error) {
 	b := &Bot{
-		token:       token,
-		disp:        dispatcher.New(),
-		playChannel: playChannel,
+		token:             token,
+		disp:              dispatcher.New(),
+		playChannel:       playChannel,
+		audioEndedChannel: audioEndedChannel,
 	}
 
 	b.disp.Register("!ping", "Teste para verificar se o bot está online", b.ping)
@@ -66,15 +68,18 @@ func (b *Bot) Start() error {
 	}()
 
 	go func() {
+		// TODO: create a bot client to manage all this complexity
 		for {
 			path := <-b.playChannel
 
 			if b.vc == nil {
+				b.audioEndedChannel <- true
 				continue
 			}
 
 			log.Info().Str("path", path).Msg("playing instant")
 			dgvoice.PlayAudioFile(b.vc, path, make(chan bool))
+			b.audioEndedChannel <- true
 		}
 	}()
 

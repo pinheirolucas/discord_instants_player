@@ -44,9 +44,15 @@ func run(cmd *cobra.Command, args []string) error {
 	address := fmt.Sprintf("%s:%d", host, port)
 
 	errchan := make(chan error, 1)
-	playchan := make(chan string, 1)
+	defer close(errchan)
 
-	b, err := bot.New(token, playchan, bot.WithOwner(owner))
+	playchan := make(chan string, 1)
+	defer close(playchan)
+
+	audioEndedChan := make(chan bool, 1)
+	defer close(audioEndedChan)
+
+	b, err := bot.New(token, playchan, audioEndedChan, bot.WithOwner(owner))
 	if err != nil {
 		return errors.Wrap(err, "failed to create a bot")
 	}
@@ -57,7 +63,7 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	s := server.New(playchan)
+	s := server.New(playchan, audioEndedChan)
 
 	go func() {
 		if err := s.Start(address); err != nil {

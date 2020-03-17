@@ -10,23 +10,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 )
 
 type Server struct {
-	address     string
-	playChannel chan string
+	address           string
+	playChannel       chan string
+	audioEndedChannel chan bool
 }
 
-func New(playChannel chan string) *Server {
+func New(playChannel chan string, audioEndedChannel chan bool) *Server {
 	return &Server{
-		playChannel: playChannel,
+		playChannel:       playChannel,
+		audioEndedChannel: audioEndedChannel,
 	}
 }
 
 func (s *Server) Start(address string) error {
 	r := mux.NewRouter()
+	cors := handlers.CORS()
 
 	r.HandleFunc("/instants/add", s.handleInstantAdd).Methods(http.MethodPost)
 	r.HandleFunc("/instants/remove", s.handleInstantRemove).Methods(http.MethodDelete).Queries("path", "{path}")
@@ -34,7 +38,7 @@ func (s *Server) Start(address string) error {
 	r.HandleFunc("/bot/play", s.handleBotPlay).Methods(http.MethodPost).Queries("path", "{path}")
 
 	srv := &http.Server{
-		Handler:      r,
+		Handler:      cors(r),
 		Addr:         address,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -247,5 +251,6 @@ func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.playChannel <- path
+	<-s.audioEndedChannel
 	w.WriteHeader(http.StatusOK)
 }
