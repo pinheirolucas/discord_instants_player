@@ -4,10 +4,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
 
-	"github.com/pinheirolucas/discord_instants_player/dispatcher"
+	"github.com/pinheirolucas/discord_instants_player/command"
 )
 
-func (b *Bot) join(ctx *dispatcher.Context) {
+func (b *Bot) join(ctx *command.DiscordContext) {
 	s := ctx.Session
 	m := ctx.Message
 

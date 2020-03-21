@@ -3,10 +3,10 @@ package bot
 import (
 	"github.com/rs/zerolog/log"
 
-	"github.com/pinheirolucas/discord_instants_player/dispatcher"
+	"github.com/pinheirolucas/discord_instants_player/command"
 )
 
-func (b *Bot) ping(ctx *dispatcher.Context) {
+func (b *Bot) ping(ctx *command.DiscordContext) {
 	m := ctx.Message
 	s := ctx.Session
 
