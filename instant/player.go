@@ -1,7 +1,7 @@
 package instant
 
 import (
-	"strings"
+	"fmt"
 	"sync"
 
 	"github.com/pinheirolucas/discord_instants_player/fsutil"
@@ -13,89 +13,73 @@ var ErrInvalidLink = errors.New("invalid link")
 type Player struct {
 	sync.Mutex
 
-	playing string
+	playing bool
 
-	StopChan  chan bool
-	playChan  chan string
-	startChan chan string
-	endChan   chan string
+	playChan     chan string
+	endChan      chan bool
+	internalStop chan bool
+	StopChan     chan bool
 }
 
 func NewPlayer() *Player {
 	return &Player{
-		StopChan:  make(chan bool, 1),
-		playChan:  make(chan string, 1),
-		startChan: make(chan string, 1),
-		endChan:   make(chan string, 1),
+		playChan:     make(chan string, 1),
+		endChan:      make(chan bool, 1),
+		internalStop: make(chan bool, 1),
+		StopChan:     make(chan bool, 1),
 	}
 }
 
 func (p *Player) Close() {
 	close(p.playChan)
+	close(p.endChan)
 	close(p.StopChan)
 }
 
-func (p *Player) Play(link string) error {
+func (p *Player) Play(link string) (string, error) {
 	if !IsLinkValid(link) {
-		return ErrInvalidLink
+		return "", ErrInvalidLink
 	}
 
 	f, err := fsutil.GetFromCache(link)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
 
-	p.Lock()
-	defer p.Unlock()
-
-	if isPlaying(p.playing) {
-		p.StopChan <- true
-	}
-
+	p.Stop()
 	p.playChan <- f.Name()
-	p.startChan <- link
-	p.playing = f.Name()
-	return nil
+	p.playing = true
+
+	select {
+	case <-p.endChan:
+		fmt.Println("ended")
+		return "end", nil
+	case <-p.internalStop:
+		fmt.Println("stoped")
+		return "stop", nil
+	}
 }
 
 func (p *Player) Stop() {
-	p.Lock()
-	defer p.Unlock()
-
-	if !isPlaying(p.playing) {
+	if !p.playing {
 		return
 	}
 
 	p.StopChan <- true
-	p.endChan <- p.playing
-	p.playing = ""
+	p.internalStop <- true
+	p.playing = false
 }
 
 func (p *Player) End() {
-	p.Lock()
-	defer p.Unlock()
-
-	if !isPlaying(p.playing) {
+	if !p.playing {
 		return
 	}
 
 	p.endChan <- p.playing
-	p.playing = ""
-}
-
-func (p *Player) GetNextStarted() string {
-	return <-p.startChan
-}
-
-func (p *Player) GetNextEnded() string {
-	return <-p.endChan
+	p.playing = false
 }
 
 func (p *Player) GetNextPlay() string {
 	return <-p.playChan
-}
-
-func isPlaying(url string) bool {
-	return strings.TrimSpace(url) != ""
 }

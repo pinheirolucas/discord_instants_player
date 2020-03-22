@@ -5,12 +5,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/command"
+	"github.com/pinheirolucas/discord_instants_player/dgvoice"
 	"github.com/pinheirolucas/discord_instants_player/instant"
 )
 
@@ -52,9 +52,9 @@ func (b *Bot) Start() error {
 	client.AddHandler(b.handleReady)
 	client.AddHandler(b.handleMessages)
 
-	// For some reason dg voice thinks that logging errors by himself is a good idea.
-	// The line below disables those logs.
-	dgvoice.OnError = func(str string, err error) {}
+	dgvoice.OnError = func(str string, err error) {
+		log.Debug().Err(err).Msg(str)
+	}
 
 	if err = client.Open(); err != nil {
 		return errors.Wrap(err, "failed to open websocket connection")

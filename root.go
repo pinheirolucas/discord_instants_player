@@ -72,12 +72,6 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 	errchan := make(chan error, 1)
 	defer close(errchan)
 
-	playchan := make(chan string, 1)
-	defer close(playchan)
-
-	audioEndedChan := make(chan bool, 1)
-	defer close(audioEndedChan)
-
 	player := instant.NewPlayer()
 	defer player.Close()
 

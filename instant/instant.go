@@ -15,11 +15,11 @@ import (
 const instantsURLPrefix = "https://www.myinstants.com/media/sounds/"
 
 type Instant struct {
-	Exists  bool
-	Content string
+	Exists  bool   `json:"exists,omitempty"`
+	Content string `json:"content,omitempty"`
 }
 
-func GetPlayableInstant(link string) (*Instant, error) {
+func GetPlayable(link string) (*Instant, error) {
 	if !IsLinkValid(link) {
 		return nil, errors.Errorf("invalid link: %s", link)
 	}
