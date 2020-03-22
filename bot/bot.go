@@ -5,29 +5,30 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
-	"github.com/pinheirolucas/discord_instants_player/dispatcher"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+
+	"github.com/pinheirolucas/discord_instants_player/command"
+	"github.com/pinheirolucas/discord_instants_player/dgvoice"
+	"github.com/pinheirolucas/discord_instants_player/instant"
 )
 
 type Bot struct {
-	token             string
-	owner             string
-	playChannel       chan string
-	audioEndedChannel chan bool
-	client            *discordgo.Session
-	vc                *discordgo.VoiceConnection
-	disp              *dispatcher.Dispatcher
+	token string
+	owner string
+
+	client *discordgo.Session
+	vc     *discordgo.VoiceConnection
+	disp   *command.DiscordDispatcher
+	player *instant.Player
 }
 
-func New(token string, playChannel chan string, audioEndedChannel chan bool, options ...Option) (*Bot, error) {
+func New(token string, player *instant.Player, options ...Option) (*Bot, error) {
 	b := &Bot{
-		token:             token,
-		disp:              dispatcher.New(),
-		playChannel:       playChannel,
-		audioEndedChannel: audioEndedChannel,
+		token:  token,
+		disp:   command.NewDiscordDispatcher(),
+		player: player,
 	}
 
 	b.disp.Register("!ping", "Teste para verificar se o bot está online", b.ping)
@@ -51,9 +52,9 @@ func (b *Bot) Start() error {
 	client.AddHandler(b.handleReady)
 	client.AddHandler(b.handleMessages)
 
-	// For some reason dg voice thinks that logging errors by himself is a good idea.
-	// The line below disables those logs.
-	dgvoice.OnError = func(str string, err error) {}
+	dgvoice.OnError = func(str string, err error) {
+		log.Debug().Err(err).Msg(str)
+	}
 
 	if err = client.Open(); err != nil {
 		return errors.Wrap(err, "failed to open websocket connection")
@@ -70,16 +71,16 @@ func (b *Bot) Start() error {
 	go func() {
 		// TODO: create a bot client to manage all this complexity
 		for {
-			path := <-b.playChannel
+			path := b.player.GetNextPlay()
 
 			if b.vc == nil {
-				b.audioEndedChannel <- true
+				b.player.End()
 				continue
 			}
 
 			log.Info().Str("path", path).Msg("playing instant")
-			dgvoice.PlayAudioFile(b.vc, path, make(chan bool))
-			b.audioEndedChannel <- true
+			dgvoice.PlayAudioFile(b.vc, path, b.player.StopChan)
+			b.player.End()
 		}
 	}()
 
