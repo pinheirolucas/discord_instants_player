@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -39,11 +38,8 @@ func init() {
 	rootCmd.PersistentFlags().String("token", "", "bot token to bind the application")
 	viper.BindPFlag("discord_instants_player_token", rootCmd.PersistentFlags().Lookup("token"))
 
-	rootCmd.PersistentFlags().String("host", "", "host to bind the http server")
-	viper.BindPFlag("discord_instants_player_host", rootCmd.PersistentFlags().Lookup("host"))
-
-	rootCmd.PersistentFlags().Int("port", 0, "port to bind the http server")
-	viper.BindPFlag("discord_instants_player_port", rootCmd.PersistentFlags().Lookup("port"))
+	rootCmd.PersistentFlags().String("address", "", "address to bind the http server")
+	viper.BindPFlag("discord_instants_player_address", rootCmd.PersistentFlags().Lookup("address"))
 }
 
 func runRootCmd(cmd *cobra.Command, args []string) error {
@@ -57,17 +53,10 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 		return errors.New("owner not provided")
 	}
 
-	host := viper.GetString("discord_instants_player_host")
-	if strings.TrimSpace(host) == "" {
-		return errors.New("host not provided")
+	address := viper.GetString("discord_instants_player_address")
+	if strings.TrimSpace(address) == "" {
+		return errors.New("address not provided")
 	}
-
-	port := viper.GetInt("discord_instants_player_port")
-	if port == 0 {
-		return errors.New("port not provided")
-	}
-
-	address := fmt.Sprintf("%s:%d", host, port)
 
 	errchan := make(chan error, 1)
 	defer close(errchan)
