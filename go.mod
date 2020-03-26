@@ -3,6 +3,7 @@ module github.com/pinheirolucas/discord_instants_player
 go 1.14
 
 require (
+	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/bwmarrin/discordgo v0.20.2
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
@@ -14,6 +15,7 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5 // indirect
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
+	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
+	golang.org/x/text v0.3.2 // indirect
 	layeh.com/gopus v0.0.0-20161224163843-0ebf989153aa
 )
