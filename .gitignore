@@ -17,4 +17,5 @@
 *.mp3
 .discord_instants_player*
 
+dist
 !artifacts/*
