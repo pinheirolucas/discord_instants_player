@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -144,6 +145,11 @@ type instantButton struct {
 	URL  string `json:"url,omitempty"`
 }
 
+type instantListResponse struct {
+	Instants []*instantButton `json:"instants,omitempty"`
+	Pages    int              `json:"pages,omitempty"`
+}
+
 func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	vars := r.URL.Query()
 
@@ -217,6 +223,29 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		links = append(links, url)
 	})
 
+	var totalPages int
+	pagination := document.Find(".pagination .waves-effect.hide-on-small-only a")
+	if pagination == nil {
+		totalPages = 1
+	} else {
+		node := pagination.Get(pagination.Length() - 1)
+		if node == nil || node.FirstChild == nil {
+			totalPages = 1
+		} else {
+			pageNum, err := strconv.Atoi(node.FirstChild.Data)
+			if err != nil {
+				writeErrorMessage(
+					w,
+					http.StatusInternalServerError,
+					"total_pages_count",
+					"Não foi possível recuperar a quantidade de páginas",
+				)
+				return
+			}
+			totalPages = pageNum
+		}
+	}
+
 	if len(names) != len(links) {
 		writeErrorMessage(
 			w,
@@ -235,5 +264,8 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	writeSuccessResponse(w, instants)
+	writeSuccessResponse(w, &instantListResponse{
+		Instants: instants,
+		Pages:    totalPages,
+	})
 }

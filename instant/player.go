@@ -1,7 +1,6 @@
 package instant
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/pinheirolucas/discord_instants_player/fsutil"
@@ -53,10 +52,8 @@ func (p *Player) Play(link string) (string, error) {
 
 	select {
 	case <-p.endChan:
-		fmt.Println("ended")
 		return "end", nil
 	case <-p.internalStop:
-		fmt.Println("stoped")
 		return "stop", nil
 	}
 }
