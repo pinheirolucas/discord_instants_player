@@ -10,11 +10,14 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/fsutil"
 	"github.com/pinheirolucas/discord_instants_player/instant"
 )
+
+const autodiscoveryServiceName = "_myinstants._tcp"
 
 type Server struct {
 	player *instant.Player
@@ -44,7 +47,19 @@ func (s *Server) Start(address string) error {
 		ReadTimeout:  15 * time.Second,
 	}
 
+	_, port := getHostAndPortFromAddress(address)
+	if port == 0 {
+		return errors.New("invalid address to bind")
+	}
+
+	autodiscovery, err := newAutodiscoveryServer(autodiscoveryServiceName, port)
+	if err != nil {
+		return errors.Wrap(err, "unable to register autodiscovery server for myinstants")
+	}
+	defer autodiscovery.Shutdown()
+
 	log.Info().Str("address", address).Msg("listening for http connections")
+	log.Info().Str("service", autodiscoveryServiceName).Msg("registering autodiscovery server")
 	return srv.ListenAndServe()
 }
 
@@ -228,21 +243,26 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	if pagination == nil {
 		totalPages = 1
 	} else {
-		node := pagination.Get(pagination.Length() - 1)
-		if node == nil || node.FirstChild == nil {
+		paginationLength := pagination.Length()
+		if paginationLength == 0 {
 			totalPages = 1
 		} else {
-			pageNum, err := strconv.Atoi(node.FirstChild.Data)
-			if err != nil {
-				writeErrorMessage(
-					w,
-					http.StatusInternalServerError,
-					"total_pages_count",
-					"Não foi possível recuperar a quantidade de páginas",
-				)
-				return
+			node := pagination.Get(paginationLength - 1)
+			if node == nil || node.FirstChild == nil {
+				totalPages = 1
+			} else {
+				pageNum, err := strconv.Atoi(node.FirstChild.Data)
+				if err != nil {
+					writeErrorMessage(
+						w,
+						http.StatusInternalServerError,
+						"total_pages_count",
+						"Não foi possível recuperar a quantidade de páginas",
+					)
+					return
+				}
+				totalPages = pageNum
 			}
-			totalPages = pageNum
 		}
 	}
 
