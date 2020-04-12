@@ -112,11 +112,18 @@ func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
 	case nil:
 		// continue
 	case instant.ErrInvalidLink:
-		writeErrorMessage(w, http.StatusBadRequest, "invalid_url", "A URL enviada não parece ser do myinstants.com")
+		writeErrorMessage(w, http.StatusBadRequest, "invalid_url", "A URL enviada é inválida")
 		return
 	case fsutil.ErrNotFound:
 		writeErrorMessage(w, http.StatusBadRequest, "instant_not_found", "O instant enviado não foi encontrado")
 		return
+	case fsutil.ErrUnsuportedAudioFormat:
+		writeErrorMessage(
+			w,
+			http.StatusBadRequest,
+			"unsuported_audio_format",
+			"O formato de áudio do instant enviado não é suportado",
+		)
 	default:
 		writeErrorMessage(
 			w,

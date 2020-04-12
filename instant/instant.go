@@ -5,14 +5,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"strings"
+	"net/url"
 
 	"github.com/pkg/errors"
 
 	"github.com/pinheirolucas/discord_instants_player/fsutil"
 )
-
-const instantsURLPrefix = "https://www.myinstants.com/media/sounds/"
 
 type Instant struct {
 	Exists  bool   `json:"exists,omitempty"`
@@ -20,10 +18,6 @@ type Instant struct {
 }
 
 func GetPlayable(link string) (*Instant, error) {
-	if !IsLinkValid(link) {
-		return nil, errors.Errorf("invalid link: %s", link)
-	}
-
 	w := new(bytes.Buffer)
 	instant := new(Instant)
 
@@ -50,5 +44,15 @@ func GetPlayable(link string) (*Instant, error) {
 }
 
 func IsLinkValid(link string) bool {
-	return strings.HasPrefix(link, instantsURLPrefix)
+	_, err := url.ParseRequestURI(link)
+	if err != nil {
+		return false
+	}
+
+	u, err := url.Parse(link)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return false
+	}
+
+	return true
 }

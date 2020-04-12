@@ -8,11 +8,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/h2non/filetype"
+	"github.com/h2non/filetype/matchers"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )
 
-var ErrNotFound = errors.New("resource not found")
+var (
+	ErrNotFound              = errors.New("resource not found")
+	ErrUnsuportedAudioFormat = errors.New("unduported audio format")
+)
 
 func GetFromCache(link string) (*os.File, error) {
 	cdr, err := GetCacheDirOrCreate()
@@ -44,6 +49,15 @@ func GetFromCache(link string) (*os.File, error) {
 		return nil, ErrNotFound
 	default:
 		return nil, errors.Errorf("failed to fetch instant: %d", fr.StatusCode)
+	}
+
+	fileKind, err := filetype.MatchReader(fr.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get instant info")
+	}
+
+	if fileKind != matchers.TypeMp3 {
+		return nil, ErrUnsuportedAudioFormat
 	}
 
 	file, err := os.Create(fname)
