@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/handlers"
@@ -41,10 +40,8 @@ func (s *Server) Start(address string) error {
 	r.HandleFunc("/instant/list", s.handleInstantList).Methods(http.MethodGet)
 
 	srv := &http.Server{
-		Handler:      cors(r),
-		Addr:         address,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		Handler: cors(r),
+		Addr:    address,
 	}
 
 	_, port := getHostAndPortFromAddress(address)
