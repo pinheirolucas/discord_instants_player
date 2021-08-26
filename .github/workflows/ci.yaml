@@ -46,21 +46,15 @@ jobs:
         uses: actions/cache@v2
         with:
           path: bin
-          key: ${{ runner.os }}-ffmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
-
-      # - name: Download latest ffmpeg build from release branch
-      #   run: |
-      #     if [ -d bin ]; then
-      #       echo "No ffmpeg update available"
-      #       exit 0
-      #     fi
-
-      #     echo "Updating ffmpeg..."
-      #     mkdir bin
-      #     curl -fs https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip | tee bin/ffmpeg.zip | sha256sum -c sum.txt
+          key: ${{ runner.os }}-affmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
 
       - name: Download latest ffmpeg build from release branch
         run: |
+          if [ -d bin ]; then
+            echo "No ffmpeg update available"
+            exit 0
+          fi
+
           echo "Updating ffmpeg..."
           mkdir bin
           curl -fs https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip | tee bin/ffmpeg.zip | sha256sum -c sum.txt
