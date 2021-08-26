@@ -15,7 +15,6 @@
 # vendor/
 
 *.mp3
+bin
 .discord_instants_player*
-
-dist
-!artifacts/*
+!.discord_instants_player.sample.yaml
