@@ -57,6 +57,9 @@ jobs:
 
           echo "Updating ffmpeg..."
           mkdir bin
-          curl -so bin/ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+          curl -fs https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip | tee bin/ffmpeg.zip | sha256sum -c sum.txt
+
+      - name: Checksum
+        run: cat sum.txt
 
       - run: ls -la
