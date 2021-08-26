@@ -80,9 +80,11 @@ var
   Saved: Boolean;
 begin
   Saved := SaveStringToFile(GetSettingsFile(),
-    'discord_instants_player_token: ' + BotSettingsPage.Values[1] + #13#10 +
-    'discord_instants_player_owner: ' + BotSettingsPage.Values[0] + #13#10 +
-    'discord_instants_player_address: ":9001"' + #13#10,
+    'bot:' + #13#10 +
+    '  token: ' + BotSettingsPage.Values[1] + #13#10 +
+    '  owner: ' + BotSettingsPage.Values[0] + #13#10 +
+    'server:' + #13#10 +
+    '  address: ":9001"' + #13#10,
     True);
 
   Result := '';
