@@ -21,7 +21,7 @@ var cfgFile string
 
 var rootCmd = &cobra.Command{
 	Use:           "discord_instants_player",
-	Short:         "A brief description of your application",
+	Short:         "Application layer that manages the bot and creates an HTTP inteface for controlling the bot playback",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	RunE:          runRootCmd,
@@ -32,30 +32,30 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.discord_instants_player.yaml)")
 
-	rootCmd.PersistentFlags().String("owner", "", "username for the bot owner")
-	viper.BindPFlag("discord_instants_player_owner", rootCmd.PersistentFlags().Lookup("owner"))
+	rootCmd.PersistentFlags().String("bot-owner", "", "bot owner username")
+	viper.BindPFlag("bot.owner", rootCmd.PersistentFlags().Lookup("bot-owner"))
 
-	rootCmd.PersistentFlags().String("token", "", "bot token to bind the application")
-	viper.BindPFlag("discord_instants_player_token", rootCmd.PersistentFlags().Lookup("token"))
+	rootCmd.PersistentFlags().String("bot-token", "", "application oauth token to authenticate the bot")
+	viper.BindPFlag("bot.token", rootCmd.PersistentFlags().Lookup("bot-token"))
 
-	rootCmd.PersistentFlags().String("address", "", "address to bind the http server")
-	viper.BindPFlag("discord_instants_player_address", rootCmd.PersistentFlags().Lookup("address"))
+	rootCmd.PersistentFlags().String("server-address", "", "address to bind the http server")
+	viper.BindPFlag("server.address", rootCmd.PersistentFlags().Lookup("server-address"))
 }
 
 func runRootCmd(cmd *cobra.Command, args []string) error {
-	token := viper.GetString("discord_instants_player_token")
+	token := viper.GetString("bot.token")
 	if strings.TrimSpace(token) == "" {
-		return errors.New("token not provided")
+		return errors.New("bot token not provided")
 	}
 
-	owner := viper.GetString("discord_instants_player_owner")
+	owner := viper.GetString("bot.owner")
 	if strings.TrimSpace(owner) == "" {
-		return errors.New("owner not provided")
+		return errors.New("bot owner not provided")
 	}
 
-	address := viper.GetString("discord_instants_player_address")
+	address := viper.GetString("server.address")
 	if strings.TrimSpace(address) == "" {
-		return errors.New("address not provided")
+		return errors.New("server address not provided")
 	}
 
 	errchan := make(chan error, 1)

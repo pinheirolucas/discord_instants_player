@@ -1,0 +1,33 @@
+# Bot related settings.
+bot:
+  # The owner discord username of the bot.
+  # This is used to ensure that the bot will only follow the commands and API
+  # calls given by the provided discord user.
+  #
+  # Eg.: pinheirolucas
+  #
+  # Setting mapped to:
+  # - CLI Flag: --bot-owner
+  # - Environment: DISCORD_INSTANTS_PLAYER_BOT_OWNER
+  owner: ''
+
+  # The application OAuth token to authenticate with the bot.
+  # To create your own application bot follow this official doc: https://discord.com/developers/docs/intro
+  #
+  # Setting mapped to:
+  # - CLI Flag: --bot-token
+  # - Environment: DISCORD_INSTANTS_PLAYER_BOT_TOKEN
+  token: Njg4MjI2MjI1MDQyMzU4Mjg5.XmxOng.Yt2ahYk5wcGegKuzHBZlfq7Zofw
+
+# HTTP server related settings.
+# This HTTP server exposes an interface for controlling the bot playback and
+# retrieving data from MyInstants.
+server:
+  # The address to bind the HTTP server.
+  #
+  # Eg.: 0.0.0.0:3001
+  #
+  # Setting mapped to:
+  # - CLI Flag: --server-address
+  # - Environment: DISCORD_INSTANTS_PLAYER_SERVER_ADDRESS
+  address: 0.0.0.0:3001
