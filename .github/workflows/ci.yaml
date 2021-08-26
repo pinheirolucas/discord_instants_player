@@ -32,10 +32,30 @@ jobs:
       - name: Build
         run: make
 
-  external-dependencies:
+  ffmpeg:
     runs-on: ubuntu-latest
 
     steps:
-      - run: curl -o ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+      - name: Fetch ffmpeg release metadata
+        id: ffmpeg-metadata
+        run: |
+          echo "::set-output name=version::$(curl -s https://www.gyan.dev/ffmpeg/builds/release-version)"
+          echo "::set-output name=hash::$(curl -s https://www.gyan.dev/ffmpeg/builds/sha256-release-essentials-zip)"
+
+      - name: Restore ffmpeg cache
+        uses: actions/cache@v2
+        with:
+          path: bin
+          key: ${{ runner.os }}-ffmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
+
+      - name: Download latest ffmpeg build from release branch
+        run: |
+          if [ -d bin ]; then
+            echo "No ffmpeg update available"
+            exit 0
+          fi
+
+          echo "Updating ffmpeg..."
+          curl -o bin/ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
 
       - run: ls -la
