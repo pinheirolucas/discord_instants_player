@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
-	"github.com/pinheirolucas/discord_instants_player/fsutil"
-	"github.com/pinheirolucas/discord_instants_player/instant"
+	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
+	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
 )
 
 const autodiscoveryServiceName = "_myinstants._tcp"

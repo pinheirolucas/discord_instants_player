@@ -3,7 +3,7 @@ package bot
 import (
 	"github.com/rs/zerolog/log"
 
-	"github.com/pinheirolucas/discord_instants_player/command"
+	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 )
 
 func (b *Bot) help(ctx *command.DiscordContext) {

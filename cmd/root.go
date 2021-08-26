@@ -1,6 +1,7 @@
-package main
+package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -12,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/pinheirolucas/discord_instants_player/bot"
-	"github.com/pinheirolucas/discord_instants_player/instant"
-	"github.com/pinheirolucas/discord_instants_player/server"
+	"github.com/pinheirolucas/discord_instants_player/pkg/bot"
+	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
+	"github.com/pinheirolucas/discord_instants_player/pkg/server"
 )
 
 var cfgFile string
@@ -25,6 +26,14 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	RunE:          runRootCmd,
+}
+
+// Execute ...
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func init() {

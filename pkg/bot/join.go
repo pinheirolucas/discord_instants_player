@@ -4,7 +4,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
 
-	"github.com/pinheirolucas/discord_instants_player/command"
+	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 )
 
 func (b *Bot) join(ctx *command.DiscordContext) {

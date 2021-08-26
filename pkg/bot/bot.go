@@ -9,9 +9,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
-	"github.com/pinheirolucas/discord_instants_player/command"
-	"github.com/pinheirolucas/discord_instants_player/dgvoice"
-	"github.com/pinheirolucas/discord_instants_player/instant"
+	"github.com/pinheirolucas/discord_instants_player/pkg/command"
+	"github.com/pinheirolucas/discord_instants_player/pkg/dgvoice"
+	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
 )
 
 type Bot struct {

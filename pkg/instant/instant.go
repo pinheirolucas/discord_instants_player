@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/pinheirolucas/discord_instants_player/fsutil"
+	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
 )
 
 type Instant struct {

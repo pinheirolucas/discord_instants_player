@@ -3,8 +3,9 @@ package instant
 import (
 	"sync"
 
-	"github.com/pinheirolucas/discord_instants_player/fsutil"
 	"github.com/pkg/errors"
+
+	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
 )
 
 var ErrInvalidLink = errors.New("invalid link")

@@ -1,13 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"github.com/pinheirolucas/discord_instants_player/cmd"
 )
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	cmd.Execute()
 }
