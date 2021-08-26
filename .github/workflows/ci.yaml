@@ -31,3 +31,11 @@ jobs:
 
       - name: Build
         run: make
+
+  external-dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: curl -o ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+
+      - run: ls -la
