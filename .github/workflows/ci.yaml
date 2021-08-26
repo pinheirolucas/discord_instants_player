@@ -40,7 +40,7 @@ jobs:
         id: ffmpeg-metadata
         run: |
           echo "::set-output name=version::$(curl -s https://www.gyan.dev/ffmpeg/builds/release-version)"
-          echo "::set-output name=hash::$(curl -s https://www.gyan.dev/ffmpeg/builds/sha256-release-essentials-zip)"
+          curl -os sum.txt https://www.gyan.dev/ffmpeg/builds/sha256-release-essentials-zip
 
       - name: Restore ffmpeg cache
         uses: actions/cache@v2
@@ -58,8 +58,3 @@ jobs:
           echo "Updating ffmpeg..."
           mkdir bin
           curl -fs https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip | tee bin/ffmpeg.zip | sha256sum -c sum.txt
-
-      - name: Checksum
-        run: cat sum.txt
-
-      - run: ls -la
