@@ -40,7 +40,7 @@ jobs:
         id: ffmpeg-metadata
         run: |
           echo "::set-output name=version::$(curl -s https://www.gyan.dev/ffmpeg/builds/release-version)"
-          curl -os sum.txt https://www.gyan.dev/ffmpeg/builds/sha256-release-essentials-zip
+          curl -so sum.txt https://www.gyan.dev/ffmpeg/builds/sha256-release-essentials-zip
           ls -la
 
       - name: Restore ffmpeg cache
