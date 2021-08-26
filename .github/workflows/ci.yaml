@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: bin
-          key: ${{ runner.os }}-affmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
+          key: ${{ runner.os }}-ffmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
 
       - name: Download latest ffmpeg build from release branch
         run: |
