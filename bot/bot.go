@@ -18,7 +18,6 @@ type Bot struct {
 	token string
 	owner string
 
-	client *discordgo.Session
 	vc     *discordgo.VoiceConnection
 	disp   *command.DiscordDispatcher
 	player *instant.Player

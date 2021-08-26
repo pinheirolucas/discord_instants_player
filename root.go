@@ -115,6 +115,11 @@ func initConfig() {
 		viper.SetConfigName(".discord_instants_player")
 	}
 
+	replacer := strings.NewReplacer(
+		".", "_",
+		"-", "_",
+	)
+	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
