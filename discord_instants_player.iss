@@ -27,9 +27,9 @@ Root: HKCU; Subkey: "Environment"; ValueType:string; ValueName: "Path"; ValueDat
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "artifacts\discord_instants_player.exe"; DestDir: "{app}"
-Source: "artifacts\ffmpeg.zip"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "artifacts\unzip.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "bin\discord_instants_player.exe"; DestDir: "{app}"
+Source: "bin\ffmpeg.zip"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "bin\unzip.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: "{group}\instants-server"; Filename: "{cmd}"; Parameters: "/c ""{app}\discord_instants_player.exe"""
@@ -48,7 +48,7 @@ function NeedsAddPath(Param: string): boolean;
 var
   OrigPath: string;
 begin
-  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then 
+  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then
   begin
     Result := True;
     exit;
@@ -79,10 +79,10 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   Saved: Boolean;
 begin
-  Saved := SaveStringToFile(GetSettingsFile(), 
-    'discord_instants_player_token: ' + BotSettingsPage.Values[1] + #13#10 + 
-    'discord_instants_player_owner: ' + BotSettingsPage.Values[0] + #13#10 + 
-    'discord_instants_player_address: ":9001"' + #13#10, 
+  Saved := SaveStringToFile(GetSettingsFile(),
+    'discord_instants_player_token: ' + BotSettingsPage.Values[1] + #13#10 +
+    'discord_instants_player_owner: ' + BotSettingsPage.Values[0] + #13#10 +
+    'discord_instants_player_address: ":9001"' + #13#10,
     True);
 
   Result := '';
