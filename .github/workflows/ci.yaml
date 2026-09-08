@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Set up repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Set up repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -53,7 +53,7 @@ jobs:
         run: echo "version=$(curl -s https://www.gyan.dev/ffmpeg/builds/release-version)" >> "$GITHUB_OUTPUT"
 
       - name: Restore ffmpeg cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: bin
           key: ${{ runner.os }}-ffmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
