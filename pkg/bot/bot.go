@@ -48,6 +48,12 @@ func (b *Bot) Start() error {
 	}
 	defer client.Close()
 
+	client.Identify.Intents = discordgo.IntentGuilds |
+		discordgo.IntentGuildVoiceStates |
+		discordgo.IntentGuildMessages |
+		discordgo.IntentDirectMessages |
+		discordgo.IntentMessageContent
+
 	client.AddHandler(b.handleReady)
 	client.AddHandler(b.handleMessages)
 
