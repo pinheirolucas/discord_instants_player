@@ -8,7 +8,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
@@ -27,17 +26,17 @@ func New(player *instant.Player) *Server {
 }
 
 func (s *Server) Start(address string) error {
-	r := mux.NewRouter()
+	r := http.NewServeMux()
 	cors := handlers.CORS(
 		handlers.AllowedMethods([]string{http.MethodGet, http.MethodPost, http.MethodOptions}),
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowedHeaders([]string{"Content-Type"}),
 	)
 
-	r.HandleFunc("/bot/play", s.handleBotPlay).Methods(http.MethodPost)
-	r.HandleFunc("/bot/stop", s.handleBotStop).Methods(http.MethodPost)
-	r.HandleFunc("/play", s.handlePlay).Methods(http.MethodGet).Queries("url", "{url}")
-	r.HandleFunc("/instant/list", s.handleInstantList).Methods(http.MethodGet)
+	r.HandleFunc("POST /bot/play", s.handleBotPlay)
+	r.HandleFunc("POST /bot/stop", s.handleBotStop)
+	r.HandleFunc("GET /play", s.handlePlay)
+	r.HandleFunc("GET /instant/list", s.handleInstantList)
 
 	srv := &http.Server{
 		Handler: cors(r),
@@ -139,7 +138,7 @@ func (s *Server) handleBotStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePlay(w http.ResponseWriter, r *http.Request) {
-	url := mux.Vars(r)["url"]
+	url := r.URL.Query().Get("url")
 	if strings.TrimSpace(url) == "" {
 		writeErrorMessage(w, http.StatusBadRequest, "empty_url", "Nenhuma URL enviada")
 		return
