@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,10 +20,31 @@ const autodiscoveryServiceName = "_myinstants._tcp"
 
 type Server struct {
 	player *instant.Player
+
+	// myInstantsBaseURL and client let tests point the scrape at a fixture
+	// server; both fall back to the production values when unset.
+	myInstantsBaseURL string
+	client            *http.Client
 }
 
 func New(player *instant.Player) *Server {
-	return &Server{player}
+	return &Server{player: player}
+}
+
+func (s *Server) baseURL() string {
+	if s.myInstantsBaseURL != "" {
+		return s.myInstantsBaseURL
+	}
+
+	return "https://www.myinstants.com"
+}
+
+func (s *Server) httpClient() *http.Client {
+	if s.client != nil {
+		return s.client
+	}
+
+	return http.DefaultClient
 }
 
 func (s *Server) Start(address string) error {
@@ -168,10 +190,76 @@ type instantListResponse struct {
 	Pages    int              `json:"pages,omitempty"`
 }
 
+var (
+	errNameLinkMismatch = errors.New("names and links count do not match")
+	errTotalPagesCount  = errors.New("could not read the total page count")
+)
+
+// parseInstantList turns a myinstants.com search page into the API response.
+// Split out of handleInstantList so the scraping — the part most likely to break
+// when their markup changes — can be tested against a fixture instead of the
+// live site.
+func parseInstantList(r io.Reader, baseURL string) (*instantListResponse, error) {
+	document, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var names []string
+	var links []string
+
+	document.Find(".instant-link").Each(func(i int, anchor *goquery.Selection) {
+		names = append(names, anchor.Text())
+	})
+
+	document.Find(".small-button").Each(func(i int, button *goquery.Selection) {
+		url, ok := button.Attr("onmousedown")
+		if !ok {
+			return
+		}
+
+		url = strings.Replace(url, "play('", baseURL, 1)
+		url = strings.TrimSuffix(url, "')")
+
+		links = append(links, url)
+	})
+
+	totalPages := 1
+	pagination := document.Find(".pagination .waves-effect.hide-on-small-only a")
+	if pagination.Length() > 0 {
+		node := pagination.Get(pagination.Length() - 1)
+		if node != nil && node.FirstChild != nil {
+			pageNum, err := strconv.Atoi(node.FirstChild.Data)
+			if err != nil {
+				return nil, errTotalPagesCount
+			}
+
+			totalPages = pageNum
+		}
+	}
+
+	if len(names) != len(links) {
+		return nil, errNameLinkMismatch
+	}
+
+	var instants []*instantButton
+	for i, name := range names {
+		instants = append(instants, &instantButton{
+			Name: name,
+			URL:  links[i],
+		})
+	}
+
+	return &instantListResponse{
+		Instants: instants,
+		Pages:    totalPages,
+	}, nil
+}
+
 func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	vars := r.URL.Query()
 
-	url := "https://www.myinstants.com/search/"
+	url := s.baseURL() + "/search/"
 
 	page := strings.TrimSpace(vars.Get("page"))
 	if page == "" {
@@ -184,7 +272,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		url += "&name=" + search
 	}
 
-	response, err := http.Get(url)
+	response, err := s.httpClient().Get(url)
 	if err != nil {
 		log.Error().Err(err).Msg("http.Get")
 		writeErrorMessage(
@@ -204,7 +292,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		writeSuccessResponse(w, []*instantButton{})
 		return
 	default:
-		log.Error().Int("StatusCode", response.StatusCode).Err(err).Msg("Bad http status")
+		log.Error().Int("StatusCode", response.StatusCode).Msg("Bad http status")
 		writeErrorMessage(
 			w,
 			response.StatusCode,
@@ -214,62 +302,19 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	document, err := goquery.NewDocumentFromReader(response.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("goquery.NewDocumentFromReader")
-		writeErrorMessage(w, http.StatusInternalServerError, "unknown_error", "Erro desconhecido")
+	list, err := parseInstantList(response.Body, s.baseURL())
+	switch err {
+	case nil:
+		// continue
+	case errTotalPagesCount:
+		writeErrorMessage(
+			w,
+			http.StatusInternalServerError,
+			"total_pages_count",
+			"Não foi possível recuperar a quantidade de páginas",
+		)
 		return
-	}
-
-	var names []string
-	var links []string
-
-	document.Find(".instant-link").Each(func(i int, anchor *goquery.Selection) {
-		name := anchor.Text()
-		names = append(names, name)
-	})
-
-	document.Find(".small-button").Each(func(i int, button *goquery.Selection) {
-		url, ok := button.Attr("onmousedown")
-		if !ok {
-			return
-		}
-
-		url = strings.Replace(url, "play('", "https://www.myinstants.com", 1)
-		url = strings.TrimSuffix(url, "')")
-
-		links = append(links, url)
-	})
-
-	var totalPages int
-	pagination := document.Find(".pagination .waves-effect.hide-on-small-only a")
-	if pagination == nil {
-		totalPages = 1
-	} else {
-		paginationLength := pagination.Length()
-		if paginationLength == 0 {
-			totalPages = 1
-		} else {
-			node := pagination.Get(paginationLength - 1)
-			if node == nil || node.FirstChild == nil {
-				totalPages = 1
-			} else {
-				pageNum, err := strconv.Atoi(node.FirstChild.Data)
-				if err != nil {
-					writeErrorMessage(
-						w,
-						http.StatusInternalServerError,
-						"total_pages_count",
-						"Não foi possível recuperar a quantidade de páginas",
-					)
-					return
-				}
-				totalPages = pageNum
-			}
-		}
-	}
-
-	if len(names) != len(links) {
+	case errNameLinkMismatch:
 		writeErrorMessage(
 			w,
 			http.StatusInternalServerError,
@@ -277,18 +322,11 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 			"A quantidade de links e botões não conincide",
 		)
 		return
+	default:
+		log.Error().Err(err).Msg("parseInstantList")
+		writeErrorMessage(w, http.StatusInternalServerError, "unknown_error", "Erro desconhecido")
+		return
 	}
 
-	var instants []*instantButton
-	for i, name := range names {
-		instants = append(instants, &instantButton{
-			Name: name,
-			URL:  links[i],
-		})
-	}
-
-	writeSuccessResponse(w, &instantListResponse{
-		Instants: instants,
-		Pages:    totalPages,
-	})
+	writeSuccessResponse(w, list)
 }

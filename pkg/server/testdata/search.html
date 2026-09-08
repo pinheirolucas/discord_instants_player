@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--
+  Hand-built stand-in for a myinstants.com search results page, reduced to the
+  three things the scraper actually selects: .instant-link for names,
+  .small-button[onmousedown] for URLs, and the pagination anchors for the page
+  count. It is not a capture of the live site — myinstants.com now answers 403
+  to every request, browser User-Agent included, so a real page cannot be saved.
+-->
+<html lang="en">
+  <body>
+    <div class="instants-container">
+      <div class="instant">
+        <button class="small-button" onmousedown="play('/media/sounds/risada.mp3')"></button>
+        <a class="instant-link link-secondary" href="/en/instant/risada/">Risada do Mal</a>
+      </div>
+      <div class="instant">
+        <button class="small-button" onmousedown="play('/media/sounds/aplausos.mp3')"></button>
+        <a class="instant-link link-secondary" href="/en/instant/aplausos/">Aplausos</a>
+      </div>
+      <div class="instant">
+        <button class="small-button" onmousedown="play('/media/sounds/tada.mp3')"></button>
+        <a class="instant-link link-secondary" href="/en/instant/tada/">Tada</a>
+      </div>
+    </div>
+
+    <ul class="pagination">
+      <li class="waves-effect hide-on-small-only"><a href="?page=1">1</a></li>
+      <li class="waves-effect hide-on-small-only"><a href="?page=2">2</a></li>
+      <li class="waves-effect hide-on-small-only"><a href="?page=7">7</a></li>
+    </ul>
+  </body>
+</html>
