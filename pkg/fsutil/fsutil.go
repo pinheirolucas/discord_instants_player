@@ -10,7 +10,6 @@ import (
 
 	"github.com/h2non/filetype"
 	"github.com/h2non/filetype/matchers"
-	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )
 
@@ -77,7 +76,7 @@ func GetFromCache(link string) (*os.File, error) {
 }
 
 func GetCacheDirOrCreate() (string, error) {
-	h, err := homedir.Dir()
+	h, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
