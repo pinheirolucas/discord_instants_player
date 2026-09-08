@@ -3,28 +3,31 @@ module github.com/pinheirolucas/discord_instants_player
 go 1.27
 
 require (
-	github.com/PuerkitoBio/goquery v1.5.1
+	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/bwmarrin/discordgo v0.20.2
-	github.com/gorilla/handlers v1.4.2
-	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/handlers v1.5.2
+	github.com/gorilla/mux v1.8.1
 	github.com/grandcat/zeroconf v1.0.0
-	github.com/h2non/filetype v1.0.12
+	github.com/h2non/filetype v1.1.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.18.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v0.0.6
 	github.com/spf13/viper v1.6.2
-	layeh.com/gopus v0.0.0-20161224163843-0ebf989153aa
+	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
 )
 
 require (
-	github.com/andybalholm/cascadia v1.1.0 // indirect
+	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/miekg/dns v1.1.29 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/pelletier/go-toml v1.2.0 // indirect
