@@ -18,6 +18,13 @@ make clean   # go clean; remove ./bin, cp.out, nohup.out
 
 Run a single test package/test directly with the standard Go toolchain, e.g. `go test ./pkg/instant/... -run TestName -v`.
 
+The Go toolchain is pinned in `.tool-versions` (the asdf format, which mise and asdf both read, and which
+`actions/setup-go` accepts via `go-version-file`). The `go` directive in `go.mod` states the minimum
+language version the module requires and is a separate knob — bumping one does not bump the other.
+
+Note the key there has to be `golang`, not `go`: mise accepts either, but `actions/setup-go` matches only
+`golang`.
+
 Playing audio requires `ffmpeg` to be available on `PATH` at runtime (see `pkg/dgvoice`).
 
 ## Configuration
