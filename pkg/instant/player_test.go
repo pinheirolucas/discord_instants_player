@@ -51,6 +51,16 @@ func waitFor(t *testing.T, ch <-chan string) string {
 	}
 }
 
+func mustReceiveStop(t *testing.T, p *Player) {
+	t.Helper()
+
+	select {
+	case <-p.StopChan:
+	case <-time.After(2 * time.Second):
+		t.Fatal("nothing was published to StopChan")
+	}
+}
+
 func playAsync(p *Player, link string) (<-chan string, <-chan error) {
 	reason := make(chan string, 1)
 	errc := make(chan error, 1)
@@ -139,11 +149,7 @@ func TestStopMidPlaybackReturnsStopAndSignalsStopChan(t *testing.T) {
 
 	p.Stop()
 
-	select {
-	case <-p.StopChan:
-	case <-time.After(2 * time.Second):
-		t.Fatal("Stop() did not signal StopChan, which is what stops the audio stream")
-	}
+	mustReceiveStop(t, p)
 
 	if err := <-errc; err != nil {
 		t.Fatalf("Play returned error: %v", err)
@@ -172,7 +178,7 @@ func TestPlayWhileAlreadyPlayingStopsTheFirstClip(t *testing.T) {
 		t.Errorf("first Play returned %q, want \"stop\"", r)
 	}
 
-	<-p.StopChan
+	mustReceiveStop(t, p)
 	p.GetNextPlay()
 	p.End()
 

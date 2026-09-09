@@ -49,11 +49,11 @@ func (p *Player) Play(link string) (string, error) {
 
 	p.Stop()
 
-	p.playChan <- f.Name()
-
 	p.Lock()
 	p.playing = true
 	p.Unlock()
+
+	p.playChan <- f.Name()
 
 	select {
 	case <-p.endChan:
