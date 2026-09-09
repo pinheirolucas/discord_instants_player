@@ -4,13 +4,18 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/grandcat/zeroconf"
+	"github.com/libp2p/zeroconf/v2"
 )
 
-func newAutodiscoveryServer(service string, port int) (*zeroconf.Server, error) {
+const (
+	autodiscoveryPathRecord = "path=/"
+	autodiscoveryAPIRecord  = "api=1"
+)
+
+func newAutodiscoveryRegistration(port int) (string, []string, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	instanceName := fmt.Sprintf(
@@ -19,12 +24,26 @@ func newAutodiscoveryServer(service string, port int) (*zeroconf.Server, error) 
 		port,
 	)
 
+	text := []string{
+		autodiscoveryPathRecord,
+		autodiscoveryAPIRecord,
+	}
+
+	return instanceName, text, nil
+}
+
+func newAutodiscoveryServer(service string, port int) (*zeroconf.Server, error) {
+	instanceName, text, err := newAutodiscoveryRegistration(port)
+	if err != nil {
+		return nil, err
+	}
+
 	server, err := zeroconf.Register(
 		instanceName,
 		service,
 		"local.",
 		port,
-		nil,
+		text,
 		nil,
 	)
 	if err != nil {

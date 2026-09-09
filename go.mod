@@ -6,8 +6,8 @@ require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/gorilla/handlers v1.5.2
-	github.com/grandcat/zeroconf v1.0.0
 	github.com/h2non/filetype v1.1.3
+	github.com/libp2p/zeroconf/v2 v2.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
@@ -17,7 +17,6 @@ require (
 
 require (
 	github.com/andybalholm/cascadia v1.3.4 // indirect
-	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
@@ -25,7 +24,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/miekg/dns v1.1.29 // indirect
+	github.com/miekg/dns v1.1.43 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
