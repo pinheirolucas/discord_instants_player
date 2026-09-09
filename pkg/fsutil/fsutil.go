@@ -1,6 +1,7 @@
 package fsutil
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -18,8 +19,35 @@ var (
 	ErrUnsuportedAudioFormat = errors.New("unduported audio format")
 )
 
+// Cache resolves instant links to files on disk, downloading them on first use.
+// Client and Dir exist so tests can point it at an httptest.Server and a
+// temporary directory; both fall back to the production defaults when unset.
+type Cache struct {
+	Client *http.Client
+	Dir    string
+}
+
+// Default backs the package-level functions the rest of the app calls.
+var Default = &Cache{}
+
 func GetFromCache(link string) (*os.File, error) {
-	cdr, err := GetCacheDirOrCreate()
+	return Default.Get(link)
+}
+
+func GetCacheDirOrCreate() (string, error) {
+	return Default.DirOrCreate()
+}
+
+func (c *Cache) client() *http.Client {
+	if c.Client != nil {
+		return c.Client
+	}
+
+	return http.DefaultClient
+}
+
+func (c *Cache) Get(link string) (*os.File, error) {
+	cdr, err := c.DirOrCreate()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cache dir")
 	}
@@ -35,7 +63,7 @@ func GetFromCache(link string) (*os.File, error) {
 		return nil, err
 	}
 
-	fr, err := http.Get(link)
+	fr, err := c.client().Get(link)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +78,18 @@ func GetFromCache(link string) (*os.File, error) {
 		return nil, errors.Errorf("failed to fetch instant: %d", fr.StatusCode)
 	}
 
-	fileKind, err := filetype.MatchReader(fr.Body)
+	// filetype.MatchReader reads up to 8KB off the reader to sniff the type and
+	// does not put it back, so copying fr.Body afterwards writes only whatever
+	// was left — nothing at all for a clip smaller than the sniff buffer. Read
+	// the head ourselves and stitch it back on before copying.
+	head := make([]byte, 8192)
+	n, err := io.ReadFull(fr.Body, head)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return nil, errors.Wrap(err, "failed to read instant")
+	}
+	head = head[:n]
+
+	fileKind, err := filetype.Match(head)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get instant info")
 	}
@@ -64,7 +103,7 @@ func GetFromCache(link string) (*os.File, error) {
 		return nil, err
 	}
 
-	if _, err := io.Copy(file, fr.Body); err != nil {
+	if _, err := io.Copy(file, io.MultiReader(bytes.NewReader(head), fr.Body)); err != nil {
 		return nil, err
 	}
 
@@ -75,13 +114,17 @@ func GetFromCache(link string) (*os.File, error) {
 	return file, nil
 }
 
-func GetCacheDirOrCreate() (string, error) {
-	h, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
+func (c *Cache) DirOrCreate() (string, error) {
+	cdr := c.Dir
+	if cdr == "" {
+		h, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+
+		cdr = filepath.Join(h, ".instants")
 	}
 
-	cdr := filepath.Join(h, ".instants")
 	if err := os.MkdirAll(cdr, os.ModePerm); err != nil {
 		return "", err
 	}

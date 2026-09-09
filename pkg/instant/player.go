@@ -48,8 +48,12 @@ func (p *Player) Play(link string) (string, error) {
 	defer f.Close()
 
 	p.Stop()
+
 	p.playChan <- f.Name()
+
+	p.Lock()
 	p.playing = true
+	p.Unlock()
 
 	select {
 	case <-p.endChan:
@@ -59,23 +63,38 @@ func (p *Player) Play(link string) (string, error) {
 	}
 }
 
-func (p *Player) Stop() {
+// claimNotPlaying flips playing to false and reports whether this caller is the
+// one that won the flip. Stop and End both use it so that only a single caller
+// ever publishes to the channels, and so the channel sends happen outside the
+// lock — sending under it would deadlock against a concurrent Play.
+func (p *Player) claimNotPlaying() bool {
+	p.Lock()
+	defer p.Unlock()
+
 	if !p.playing {
+		return false
+	}
+
+	p.playing = false
+
+	return true
+}
+
+func (p *Player) Stop() {
+	if !p.claimNotPlaying() {
 		return
 	}
 
 	p.StopChan <- true
 	p.internalStop <- true
-	p.playing = false
 }
 
 func (p *Player) End() {
-	if !p.playing {
+	if !p.claimNotPlaying() {
 		return
 	}
 
-	p.endChan <- p.playing
-	p.playing = false
+	p.endChan <- true
 }
 
 func (p *Player) GetNextPlay() string {
