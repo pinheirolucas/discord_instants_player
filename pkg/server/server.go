@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/gorilla/handlers"
 	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
@@ -56,11 +55,6 @@ func (s *Server) httpClient() *http.Client {
 
 func (s *Server) Start(address string) error {
 	r := http.NewServeMux()
-	cors := handlers.CORS(
-		handlers.AllowedMethods([]string{http.MethodGet, http.MethodPost, http.MethodOptions}),
-		handlers.AllowedOrigins([]string{"*"}),
-		handlers.AllowedHeaders([]string{"Content-Type"}),
-	)
 
 	r.HandleFunc("POST /bot/play", s.handleBotPlay)
 	r.HandleFunc("POST /bot/stop", s.handleBotStop)
@@ -68,7 +62,7 @@ func (s *Server) Start(address string) error {
 	r.HandleFunc("GET /instant/list", s.handleInstantList)
 
 	srv := &http.Server{
-		Handler: cors(r),
+		Handler: corsMiddleware(r),
 		Addr:    address,
 	}
 
