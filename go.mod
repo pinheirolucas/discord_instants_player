@@ -8,13 +8,14 @@ require (
 	github.com/libp2p/zeroconf/v2 v2.2.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	github.com/thomas-vilte/dave-go v0.5.1
 	go.yaml.in/yaml/v3 v3.0.4
 	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
 )
 
 require (
 	github.com/andybalholm/cascadia v1.3.4 // indirect
-	github.com/disgoorg/godave v0.1.0 // indirect
+	github.com/disgoorg/godave v0.2.0 // indirect
 	github.com/disgoorg/json/v2 v2.0.0 // indirect
 	github.com/disgoorg/omit v1.0.0 // indirect
 	github.com/disgoorg/snowflake/v2 v2.0.3 // indirect
@@ -32,6 +33,7 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/thomas-vilte/mls-go v1.6.0 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

@@ -16,6 +16,7 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/voice"
+	davesession "github.com/thomas-vilte/dave-go/session"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
@@ -72,6 +73,12 @@ func (b *Bot) Start() error {
 		// would otherwise stall that loop long enough to miss heartbeat
 		// ACKs and get disconnected as a zombie connection.
 		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled()),
+		// dave-go is a pure-Go DAVE/E2EE implementation; without a session
+		// factory here voice defaults to godave's noop (unencrypted) session,
+		// which Discord's voice gateway rejects with close code 4017.
+		bot.WithVoiceManagerConfigOpts(
+			voice.WithDaveSessionCreateFunc(davesession.CreateFunc()),
+		),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create a client: %w", err)
