@@ -1,0 +1,21 @@
+<!-- Discord Bot Banner, 2x of the 680x240 profile size. Esmalte dark ground
+     with the six instant card fills as a favourites grid; the mustard card is
+     the playing one, so it carries stop instead of play. The lower-left third
+     stays empty because Discord overlaps the avatar there. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1360 480" width="1360" height="480">
+  <rect width="1360" height="480" fill="#13181d"/>
+  <g transform="translate(632 108)">
+    <rect x="0" y="0" width="200" height="120" rx="16" fill="#0d66b4"/>
+    <path d="M28 76 L28 100 L48 88 Z" fill="#f5f8fc"/>
+    <rect x="224" y="0" width="200" height="120" rx="16" fill="#a83231"/>
+    <path d="M252 76 L252 100 L272 88 Z" fill="#f5f8fc"/>
+    <rect x="448" y="0" width="200" height="120" rx="16" fill="#257b51"/>
+    <path d="M476 76 L476 100 L496 88 Z" fill="#f5f8fc"/>
+    <rect x="0" y="144" width="200" height="120" rx="16" fill="#d89e09"/>
+    <rect x="28" y="222" width="22" height="22" rx="3" fill="#13181d"/>
+    <rect x="224" y="144" width="200" height="120" rx="16" fill="#008a90"/>
+    <path d="M252 220 L252 244 L272 232 Z" fill="#f5f8fc"/>
+    <rect x="448" y="144" width="200" height="120" rx="16" fill="#8c4083"/>
+    <path d="M476 220 L476 244 L496 232 Z" fill="#f5f8fc"/>
+  </g>
+</svg>
