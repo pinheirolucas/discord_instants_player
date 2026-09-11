@@ -67,6 +67,11 @@ func (b *Bot) Start() error {
 		),
 		bot.WithEventListenerFunc(b.handleReady),
 		bot.WithEventListenerFunc(b.handleMessages),
+		// Listeners run synchronously on the gateway's websocket read loop
+		// unless this is set. !join blocks on the voice handshake, which
+		// would otherwise stall that loop long enough to miss heartbeat
+		// ACKs and get disconnected as a zombie connection.
+		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled()),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create a client: %w", err)
