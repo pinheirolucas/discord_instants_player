@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/events"
 )
 
 type DiscordDispatcher struct {
@@ -26,8 +26,7 @@ func NewDiscordDispatcher() *DiscordDispatcher {
 
 type DiscordContext struct {
 	Dispatcher *DiscordDispatcher
-	Session    *discordgo.Session
-	Message    *discordgo.MessageCreate
+	Event      *events.MessageCreate
 	Args       []string
 }
 
@@ -42,8 +41,8 @@ func (d *DiscordDispatcher) Register(cmd string, help string, h DiscordHandler) 
 	d.Unlock()
 }
 
-func (d *DiscordDispatcher) Dispatch(s *discordgo.Session, m *discordgo.MessageCreate) {
-	c := strings.Split(m.Content, " ")
+func (d *DiscordDispatcher) Dispatch(e *events.MessageCreate) {
+	c := strings.Split(e.Message.Content, " ")
 
 	cmd := c[0]
 	args := c[1:]
@@ -57,8 +56,7 @@ func (d *DiscordDispatcher) Dispatch(s *discordgo.Session, m *discordgo.MessageC
 
 	info.handlerFunc(&DiscordContext{
 		Dispatcher: d,
-		Session:    s,
-		Message:    m,
+		Event:      e,
 		Args:       args,
 	})
 }

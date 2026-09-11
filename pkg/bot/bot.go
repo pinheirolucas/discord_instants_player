@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -8,18 +9,24 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/voice"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
-	"github.com/pinheirolucas/discord_instants_player/pkg/dgvoice"
 	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
+	"github.com/pinheirolucas/discord_instants_player/pkg/opusaudio"
 )
 
 type Bot struct {
 	token string
 	owner string
 
-	vc     *discordgo.VoiceConnection
+	vc     voice.Conn
 	disp   *command.DiscordDispatcher
 	player *instant.Player
 }
@@ -43,26 +50,34 @@ func New(token string, player *instant.Player, options ...Option) (*Bot, error) 
 }
 
 func (b *Bot) Start() error {
-	client, err := discordgo.New("Bot " + b.token)
+	client, err := disgo.New(b.token,
+		bot.WithGatewayConfigOpts(
+			gateway.WithIntents(
+				gateway.IntentGuilds,
+				gateway.IntentGuildVoiceStates,
+				gateway.IntentGuildMessages,
+				gateway.IntentDirectMessages,
+				gateway.IntentMessageContent,
+			),
+		),
+		// Guilds/Channels/VoiceStates are uncached by default; !join looks
+		// all three up, so they must be explicitly enabled here.
+		bot.WithCacheConfigOpts(
+			cache.WithCaches(cache.FlagGuilds, cache.FlagChannels, cache.FlagVoiceStates),
+		),
+		bot.WithEventListenerFunc(b.handleReady),
+		bot.WithEventListenerFunc(b.handleMessages),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create a client: %w", err)
 	}
-	defer client.Close()
+	defer client.Close(context.Background())
 
-	client.Identify.Intents = discordgo.IntentGuilds |
-		discordgo.IntentGuildVoiceStates |
-		discordgo.IntentGuildMessages |
-		discordgo.IntentDirectMessages |
-		discordgo.IntentMessageContent
-
-	client.AddHandler(b.handleReady)
-	client.AddHandler(b.handleMessages)
-
-	dgvoice.OnError = func(str string, err error) {
+	opusaudio.OnError = func(str string, err error) {
 		slog.Debug(str, "err", err)
 	}
 
-	if err = client.Open(); err != nil {
+	if err = client.OpenGateway(context.Background()); err != nil {
 		return fmt.Errorf("failed to open websocket connection: %w", err)
 	}
 
@@ -71,7 +86,7 @@ func (b *Bot) Start() error {
 			return
 		}
 
-		b.vc.Close()
+		b.vc.Close(context.Background())
 	}()
 
 	go func() {
@@ -85,7 +100,7 @@ func (b *Bot) Start() error {
 			}
 
 			slog.Info("playing instant", "path", path)
-			dgvoice.PlayAudioFile(b.vc, path, b.player.StopChan)
+			opusaudio.PlayAudioFile(b.vc, path, b.player.StopChan)
 			b.player.End()
 		}
 	}()
@@ -99,23 +114,25 @@ func (b *Bot) Start() error {
 	return errors.New("application is shutting down")
 }
 
-func (b *Bot) handleReady(s *discordgo.Session, r *discordgo.Ready) {
+func (b *Bot) handleReady(e *events.Ready) {
 	slog.Info("bot is ready")
 }
 
-func (b *Bot) handleMessages(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if b.owner != "" && b.owner != m.Author.Username {
+func (b *Bot) handleMessages(e *events.MessageCreate) {
+	if b.owner != "" && b.owner != e.Message.Author.Username {
 		return
 	}
 
-	if m.Author.ID == s.State.User.ID {
+	if e.Message.Author.ID == e.Client().ID() {
 		return
 	}
 
-	if m.GuildID == "" {
-		s.ChannelMessageSend(m.ChannelID, "Maninho, eu não funciono em mensagens privadas.")
+	if e.GuildID == nil {
+		_, _ = e.Client().Rest.CreateMessage(e.ChannelID, discord.MessageCreate{
+			Content: "Maninho, eu não funciono em mensagens privadas.",
+		})
 		return
 	}
 
-	b.disp.Dispatch(s, m)
+	b.disp.Dispatch(e)
 }
