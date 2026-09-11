@@ -12,6 +12,8 @@ import (
 	"github.com/h2non/filetype"
 	"github.com/h2non/filetype/matchers"
 	"github.com/pkg/errors"
+
+	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
 )
 
 var (
@@ -30,6 +32,10 @@ type Cache struct {
 // Default backs the package-level functions the rest of the app calls.
 var Default = &Cache{}
 
+// defaultClient downloads clips when Cache.Client is unset. It has to be the
+// httpclient one: myinstants.com answers 403 to Go's default User-Agent.
+var defaultClient = httpclient.New()
+
 func GetFromCache(link string) (*os.File, error) {
 	return Default.Get(link)
 }
@@ -43,7 +49,7 @@ func (c *Cache) client() *http.Client {
 		return c.Client
 	}
 
-	return http.DefaultClient
+	return defaultClient
 }
 
 func (c *Cache) Get(link string) (*os.File, error) {
