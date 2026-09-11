@@ -5,7 +5,6 @@ go 1.27
 require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/h2non/filetype v1.1.3
 	github.com/libp2p/zeroconf/v2 v2.2.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2

@@ -10,9 +10,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/h2non/filetype"
-	"github.com/h2non/filetype/matchers"
-
 	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
 )
 
@@ -84,9 +81,9 @@ func (c *Cache) Get(link string) (*os.File, error) {
 		return nil, fmt.Errorf("failed to fetch instant: %d", fr.StatusCode)
 	}
 
-	// filetype.MatchReader reads up to 8KB off the reader to sniff the type and
-	// does not put it back, so copying fr.Body afterwards writes only whatever
-	// was left — nothing at all for a clip smaller than the sniff buffer. Read
+	// The mp3 sniff below reads a bounded amount off the reader and does not
+	// put it back, so copying fr.Body afterwards writes only whatever was
+	// left — nothing at all for a clip smaller than the sniff buffer. Read
 	// the head ourselves and stitch it back on before copying.
 	head := make([]byte, 8192)
 	n, err := io.ReadFull(fr.Body, head)
@@ -95,12 +92,7 @@ func (c *Cache) Get(link string) (*os.File, error) {
 	}
 	head = head[:n]
 
-	fileKind, err := filetype.Match(head)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get instant info: %w", err)
-	}
-
-	if fileKind != matchers.TypeMp3 {
+	if !looksLikeMP3(head) {
 		return nil, ErrUnsuportedAudioFormat
 	}
 
@@ -118,6 +110,15 @@ func (c *Cache) Get(link string) (*os.File, error) {
 	}
 
 	return file, nil
+}
+
+// looksLikeMP3 sniffs the two signatures h2non/filetype checked for the mp3
+// matcher: an ID3v2 tag, or a raw MPEG frame's sync byte.
+func looksLikeMP3(head []byte) bool {
+	if len(head) >= 3 && string(head[:3]) == "ID3" {
+		return true
+	}
+	return len(head) >= 2 && head[0] == 0xFF && head[1]&0xE0 == 0xE0
 }
 
 func (c *Cache) DirOrCreate() (string, error) {
