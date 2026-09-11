@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -13,10 +14,15 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
+	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
 	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
 )
 
 const autodiscoveryServiceName = "_myinstants._tcp"
+
+// defaultClient scrapes myinstants.com when Server.client is unset. It has to
+// be the httpclient one: myinstants.com answers 403 to Go's default User-Agent.
+var defaultClient = httpclient.New()
 
 type Server struct {
 	player *instant.Player
@@ -44,7 +50,7 @@ func (s *Server) httpClient() *http.Client {
 		return s.client
 	}
 
-	return http.DefaultClient
+	return defaultClient
 }
 
 func (s *Server) Start(address string) error {
@@ -190,16 +196,42 @@ type instantListResponse struct {
 	Pages    int              `json:"pages,omitempty"`
 }
 
+// pageSize is how many instants myinstants.com puts on a full page. Their pages
+// no longer carry a pager, so the page count is inferred from it: a full page
+// means there may be more, a short one is the last.
+const pageSize = 36
+
+const defaultRegion = "us"
+
 var (
 	errNameLinkMismatch = errors.New("names and links count do not match")
-	errTotalPagesCount  = errors.New("could not read the total page count")
+
+	// playURLPattern captures the clip path from a play button's
+	// onclick="play('/media/sounds/x.mp3', 'loader-…', '…')".
+	playURLPattern = regexp.MustCompile(`play\(\s*'([^']+)'`)
+
+	// regionPattern guards the region before it is put into an upstream path.
+	regionPattern = regexp.MustCompile(`^[a-z]{2}$`)
 )
 
-// parseInstantList turns a myinstants.com search page into the API response.
+// totalPages infers the page count from how many instants the requested page
+// held.
+func totalPages(page, count int) int {
+	switch {
+	case count >= pageSize:
+		return page + 1
+	case count > 0:
+		return page
+	default:
+		return max(1, page-1)
+	}
+}
+
+// parseInstantList turns a myinstants.com listing page into the API response.
 // Split out of handleInstantList so the scraping — the part most likely to break
 // when their markup changes — can be tested against a fixture instead of the
 // live site.
-func parseInstantList(r io.Reader, baseURL string) (*instantListResponse, error) {
+func parseInstantList(r io.Reader, baseURL string, page int) (*instantListResponse, error) {
 	document, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return nil, err
@@ -213,30 +245,18 @@ func parseInstantList(r io.Reader, baseURL string) (*instantListResponse, error)
 	})
 
 	document.Find(".small-button").Each(func(i int, button *goquery.Selection) {
-		url, ok := button.Attr("onmousedown")
+		onclick, ok := button.Attr("onclick")
 		if !ok {
 			return
 		}
 
-		url = strings.Replace(url, "play('", baseURL, 1)
-		url = strings.TrimSuffix(url, "')")
-
-		links = append(links, url)
-	})
-
-	totalPages := 1
-	pagination := document.Find(".pagination .waves-effect.hide-on-small-only a")
-	if pagination.Length() > 0 {
-		node := pagination.Get(pagination.Length() - 1)
-		if node != nil && node.FirstChild != nil {
-			pageNum, err := strconv.Atoi(node.FirstChild.Data)
-			if err != nil {
-				return nil, errTotalPagesCount
-			}
-
-			totalPages = pageNum
+		match := playURLPattern.FindStringSubmatch(onclick)
+		if match == nil {
+			return
 		}
-	}
+
+		links = append(links, baseURL+match[1])
+	})
 
 	if len(names) != len(links) {
 		return nil, errNameLinkMismatch
@@ -252,24 +272,37 @@ func parseInstantList(r io.Reader, baseURL string) (*instantListResponse, error)
 
 	return &instantListResponse{
 		Instants: instants,
-		Pages:    totalPages,
+		Pages:    totalPages(page, len(instants)),
 	}, nil
 }
 
 func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	vars := r.URL.Query()
 
-	url := s.baseURL() + "/search/"
-
-	page := strings.TrimSpace(vars.Get("page"))
-	if page == "" {
-		page = "1"
+	region := strings.ToLower(strings.TrimSpace(vars.Get("region")))
+	if region == "" {
+		region = defaultRegion
 	}
-	url += "?page=" + page
+	if !regionPattern.MatchString(region) {
+		writeErrorMessage(w, http.StatusBadRequest, "invalid_region", "A região enviada é inválida")
+		return
+	}
 
+	// The UI sends page=undefined when it has no page, so anything that is not
+	// a positive number means the first page rather than an error.
+	page, err := strconv.Atoi(strings.TrimSpace(vars.Get("page")))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	// A search goes to /search/, which ignores the region. Browsing without one
+	// goes to the region's index: /search/ with no name answers 404.
+	var url string
 	search := strings.Replace(strings.TrimSpace(vars.Get("search")), " ", "+", -1)
 	if search != "" {
-		url += "&name=" + search
+		url = s.baseURL() + "/search/?page=" + strconv.Itoa(page) + "&name=" + search
+	} else {
+		url = s.baseURL() + "/en/index/" + region + "/?page=" + strconv.Itoa(page)
 	}
 
 	response, err := s.httpClient().Get(url)
@@ -302,18 +335,10 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	list, err := parseInstantList(response.Body, s.baseURL())
+	list, err := parseInstantList(response.Body, s.baseURL(), page)
 	switch err {
 	case nil:
 		// continue
-	case errTotalPagesCount:
-		writeErrorMessage(
-			w,
-			http.StatusInternalServerError,
-			"total_pages_count",
-			"Não foi possível recuperar a quantidade de páginas",
-		)
-		return
 	case errNameLinkMismatch:
 		writeErrorMessage(
 			w,
