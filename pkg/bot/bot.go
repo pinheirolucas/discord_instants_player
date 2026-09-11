@@ -1,12 +1,13 @@
 package bot
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
@@ -44,7 +45,7 @@ func New(token string, player *instant.Player, options ...Option) (*Bot, error) 
 func (b *Bot) Start() error {
 	client, err := discordgo.New("Bot " + b.token)
 	if err != nil {
-		return errors.Wrap(err, "failed to create a client")
+		return fmt.Errorf("failed to create a client: %w", err)
 	}
 	defer client.Close()
 
@@ -62,7 +63,7 @@ func (b *Bot) Start() error {
 	}
 
 	if err = client.Open(); err != nil {
-		return errors.Wrap(err, "failed to open websocket connection")
+		return fmt.Errorf("failed to open websocket connection: %w", err)
 	}
 
 	defer func() {

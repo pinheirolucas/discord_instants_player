@@ -3,6 +3,7 @@ package fsutil
 import (
 	"bytes"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/h2non/filetype"
 	"github.com/h2non/filetype/matchers"
-	"github.com/pkg/errors"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
 )
@@ -55,7 +55,7 @@ func (c *Cache) client() *http.Client {
 func (c *Cache) Get(link string) (*os.File, error) {
 	cdr, err := c.DirOrCreate()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cache dir")
+		return nil, fmt.Errorf("failed to get cache dir: %w", err)
 	}
 
 	fname := filepath.Join(cdr, fmt.Sprintf("%x.mp3", md5.Sum(([]byte(link)))))
@@ -81,7 +81,7 @@ func (c *Cache) Get(link string) (*os.File, error) {
 	case http.StatusNotFound:
 		return nil, ErrNotFound
 	default:
-		return nil, errors.Errorf("failed to fetch instant: %d", fr.StatusCode)
+		return nil, fmt.Errorf("failed to fetch instant: %d", fr.StatusCode)
 	}
 
 	// filetype.MatchReader reads up to 8KB off the reader to sniff the type and
@@ -91,13 +91,13 @@ func (c *Cache) Get(link string) (*os.File, error) {
 	head := make([]byte, 8192)
 	n, err := io.ReadFull(fr.Body, head)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return nil, errors.Wrap(err, "failed to read instant")
+		return nil, fmt.Errorf("failed to read instant: %w", err)
 	}
 	head = head[:n]
 
 	fileKind, err := filetype.Match(head)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get instant info")
+		return nil, fmt.Errorf("failed to get instant info: %w", err)
 	}
 
 	if fileKind != matchers.TypeMp3 {

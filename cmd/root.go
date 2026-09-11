@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -74,7 +74,7 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 
 	b, err := bot.New(token, player, bot.WithOwner(owner))
 	if err != nil {
-		return errors.Wrap(err, "failed to create a bot")
+		return fmt.Errorf("failed to create a bot: %w", err)
 	}
 
 	go func() {
