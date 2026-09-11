@@ -145,6 +145,7 @@ func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
 			"unsuported_audio_format",
 			"O formato de áudio do instant enviado não é suportado",
 		)
+		return
 	default:
 		writeErrorMessage(
 			w,
