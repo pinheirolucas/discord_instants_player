@@ -145,6 +145,7 @@ func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
 			"unsuported_audio_format",
 			"O formato de áudio do instant enviado não é suportado",
 		)
+		return
 	default:
 		writeErrorMessage(
 			w,
@@ -341,7 +342,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 			w,
 			http.StatusInternalServerError,
 			"name_link_not_matched",
-			"A quantidade de links e botões não conincide",
+			"A quantidade de links e botões não coincide",
 		)
 		return
 	default:

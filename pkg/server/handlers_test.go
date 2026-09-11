@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
@@ -106,6 +107,40 @@ func TestHandleBotPlayRejectsAnInvalidURL(t *testing.T) {
 
 	if got := decodeBody(t, rec)["label"]; got != "invalid_url" {
 		t.Errorf("label = %v, want invalid_url", got)
+	}
+}
+
+// TestHandleBotPlayReturnsOnlyOneResponseForUnsupportedAudio guards against a
+// missing return after the fsutil.ErrUnsuportedAudioFormat case: without it,
+// control falls out of the switch and into writeSuccessResponse, appending a
+// second JSON object onto the same body.
+func TestHandleBotPlayReturnsOnlyOneResponseForUnsupportedAudio(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("not an mp3 file"))
+	}))
+	t.Cleanup(upstream.Close)
+
+	previous := fsutil.Default
+	fsutil.Default = &fsutil.Cache{Client: upstream.Client(), Dir: t.TempDir()}
+	t.Cleanup(func() { fsutil.Default = previous })
+
+	link := upstream.URL + "/a.mp3"
+
+	s := New(instant.NewPlayer())
+
+	rec := httptest.NewRecorder()
+	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
+
+	dec := json.NewDecoder(bytes.NewReader(rec.Body.Bytes()))
+	var out map[string]any
+	if err := dec.Decode(&out); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if out["label"] != "unsuported_audio_format" {
+		t.Errorf("label = %v, want unsuported_audio_format", out["label"])
+	}
+	if dec.More() {
+		t.Errorf("response body carries more than one JSON object: %s", rec.Body.String())
 	}
 }
 

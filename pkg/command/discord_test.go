@@ -4,11 +4,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 )
 
-func messageWith(content string) *discordgo.MessageCreate {
-	return &discordgo.MessageCreate{Message: &discordgo.Message{Content: content}}
+func messageWith(content string) *events.MessageCreate {
+	return &events.MessageCreate{
+		GenericMessage: &events.GenericMessage{
+			GenericEvent: events.NewGenericEvent(nil, 0, 0),
+			Message:      discord.Message{Content: content},
+		},
+	}
 }
 
 func TestDispatchRoutesToRegisteredCommand(t *testing.T) {
@@ -17,13 +23,13 @@ func TestDispatchRoutesToRegisteredCommand(t *testing.T) {
 	var got *DiscordContext
 	d.Register("!ping", "responde pong", func(ctx *DiscordContext) { got = ctx })
 
-	d.Dispatch(nil, messageWith("!ping"))
+	d.Dispatch(messageWith("!ping"))
 
 	if got == nil {
 		t.Fatal("handler was not called for !ping")
 	}
-	if got.Message.Content != "!ping" {
-		t.Errorf("Message.Content = %q, want %q", got.Message.Content, "!ping")
+	if got.Event.Message.Content != "!ping" {
+		t.Errorf("Message.Content = %q, want %q", got.Event.Message.Content, "!ping")
 	}
 	if len(got.Args) != 0 {
 		t.Errorf("Args = %v, want empty", got.Args)
@@ -39,7 +45,7 @@ func TestDispatchSplitsArgsOnWhitespace(t *testing.T) {
 	var args []string
 	d.Register("!play", "toca", func(ctx *DiscordContext) { args = ctx.Args })
 
-	d.Dispatch(nil, messageWith("!play https://example.com/a.mp3 loud"))
+	d.Dispatch(messageWith("!play https://example.com/a.mp3 loud"))
 
 	want := []string{"https://example.com/a.mp3", "loud"}
 	if len(args) != len(want) {
@@ -69,7 +75,7 @@ func TestDispatchIgnoresUnknownAndNonCommandMessages(t *testing.T) {
 			called := false
 			d.Register("!ping", "responde pong", func(ctx *DiscordContext) { called = true })
 
-			d.Dispatch(nil, messageWith(tt.content))
+			d.Dispatch(messageWith(tt.content))
 
 			if called {
 				t.Errorf("handler ran for %q, expected it to be ignored", tt.content)
@@ -85,7 +91,7 @@ func TestRegisterOverwritesSameCommand(t *testing.T) {
 	d.Register("!ping", "first", func(ctx *DiscordContext) { which = "first" })
 	d.Register("!ping", "second", func(ctx *DiscordContext) { which = "second" })
 
-	d.Dispatch(nil, messageWith("!ping"))
+	d.Dispatch(messageWith("!ping"))
 
 	if which != "second" {
 		t.Errorf("dispatched to %q handler, want the most recently registered one", which)

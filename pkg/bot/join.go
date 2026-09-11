@@ -1,63 +1,46 @@
 package bot
 
 import (
+	"context"
 	"log/slog"
-
-	"github.com/bwmarrin/discordgo"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 )
 
 func (b *Bot) join(ctx *command.DiscordContext) {
-	s := ctx.Session
-	m := ctx.Message
+	e := ctx.Event
+	client := e.Client()
 
-	guild, err := s.State.Guild(m.GuildID)
-	if err != nil {
-		slog.Error("failed to fetch guild info",
-			"GuildID", m.GuildID,
-			"err", err,
-		)
+	guild, ok := client.Caches.Guild(*e.GuildID)
+	if !ok {
+		slog.Error("failed to fetch guild info", "GuildID", e.GuildID)
 		return
 	}
 
-	var currentVoiceChannel *discordgo.Channel
-	for _, vs := range guild.VoiceStates {
-		if vs.UserID != m.Author.ID {
-			continue
-		}
-
-		channel, err := s.State.Channel(vs.ChannelID)
-		if err != nil {
-			slog.Error("failed to fetch voice channel info",
-				"ChannelID", vs.ChannelID,
-				"err", err,
-			)
-			return
-		}
-
-		currentVoiceChannel = channel
+	voiceState, ok := client.Caches.VoiceState(guild.ID, e.Message.Author.ID)
+	if !ok || voiceState.ChannelID == nil {
+		slog.Info("voice channel not found", "AuthorUsername", e.Message.Author.Username)
+		return
 	}
 
-	if currentVoiceChannel == nil {
-		slog.Info("voice channel not found",
-			"AuthorUsername", m.Author.Username,
-		)
+	channel, ok := client.Caches.Channel(*voiceState.ChannelID)
+	if !ok {
+		slog.Error("failed to fetch voice channel info", "ChannelID", *voiceState.ChannelID)
 		return
 	}
 
 	if b.vc == nil {
-		connection, err := s.ChannelVoiceJoin(guild.ID, currentVoiceChannel.ID, false, true)
-		if err != nil {
+		conn := client.VoiceManager.CreateConn(guild.ID)
+		if err := conn.Open(context.Background(), *voiceState.ChannelID, false, true); err != nil {
 			slog.Error("failed to join voice channel",
 				"GuildID", guild.ID,
 				"GuildName", guild.Name,
-				"ChannelID", currentVoiceChannel.ID,
-				"ChannelName", currentVoiceChannel.Name,
+				"ChannelID", *voiceState.ChannelID,
+				"ChannelName", channel.Name(),
 				"err", err,
 			)
 			return
 		}
-		b.vc = connection
+		b.vc = conn
 	}
 }
