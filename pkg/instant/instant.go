@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/pkg/errors"
-
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
 )
 
@@ -34,7 +32,7 @@ func GetPlayable(link string) (*Instant, error) {
 
 	enc := base64.NewEncoder(base64.StdEncoding, w)
 	if _, err := io.Copy(enc, f); err != nil {
-		return nil, errors.Wrap(err, "genarating base64 hash")
+		return nil, fmt.Errorf("genarating base64 hash: %w", err)
 	}
 
 	instant.Exists = true

@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -10,7 +12,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/handlers"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
@@ -78,7 +79,7 @@ func (s *Server) Start(address string) error {
 
 	autodiscovery, err := newAutodiscoveryServer(autodiscoveryServiceName, port)
 	if err != nil {
-		return errors.Wrap(err, "unable to register autodiscovery server for myinstants")
+		return fmt.Errorf("unable to register autodiscovery server for myinstants: %w", err)
 	}
 	defer autodiscovery.Shutdown()
 

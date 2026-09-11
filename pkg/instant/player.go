@@ -1,9 +1,8 @@
 package instant
 
 import (
+	"errors"
 	"sync"
-
-	"github.com/pkg/errors"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
 )
