@@ -3,12 +3,12 @@ package bot
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 	"github.com/pinheirolucas/discord_instants_player/pkg/dgvoice"
@@ -59,7 +59,7 @@ func (b *Bot) Start() error {
 	client.AddHandler(b.handleMessages)
 
 	dgvoice.OnError = func(str string, err error) {
-		log.Debug().Err(err).Msg(str)
+		slog.Debug(str, "err", err)
 	}
 
 	if err = client.Open(); err != nil {
@@ -84,13 +84,13 @@ func (b *Bot) Start() error {
 				continue
 			}
 
-			log.Info().Str("path", path).Msg("playing instant")
+			slog.Info("playing instant", "path", path)
 			dgvoice.PlayAudioFile(b.vc, path, b.player.StopChan)
 			b.player.End()
 		}
 	}()
 
-	log.Info().Msg("bot is now running")
+	slog.Info("bot is now running")
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
@@ -100,7 +100,7 @@ func (b *Bot) Start() error {
 }
 
 func (b *Bot) handleReady(s *discordgo.Session, r *discordgo.Ready) {
-	log.Info().Msg("bot is ready")
+	slog.Info("bot is ready")
 }
 
 func (b *Bot) handleMessages(s *discordgo.Session, m *discordgo.MessageCreate) {

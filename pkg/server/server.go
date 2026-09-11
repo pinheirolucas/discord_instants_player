@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
 	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
@@ -77,8 +77,8 @@ func (s *Server) Start(address string) error {
 	}
 	defer autodiscovery.Shutdown()
 
-	log.Info().Str("address", address).Msg("listening for http connections")
-	log.Info().Str("service", autodiscoveryServiceName).Msg("registering autodiscovery server")
+	slog.Info("listening for http connections", "address", address)
+	slog.Info("registering autodiscovery server", "service", autodiscoveryServiceName)
 	return srv.ListenAndServe()
 }
 
@@ -302,7 +302,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 
 	response, err := s.httpClient().Get(url)
 	if err != nil {
-		log.Error().Err(err).Msg("http.Get")
+		slog.Error("http.Get", "err", err)
 		writeErrorMessage(
 			w,
 			http.StatusInternalServerError,
@@ -320,7 +320,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		writeSuccessResponse(w, []*instantButton{})
 		return
 	default:
-		log.Error().Int("StatusCode", response.StatusCode).Msg("Bad http status")
+		slog.Error("Bad http status", "StatusCode", response.StatusCode)
 		writeErrorMessage(
 			w,
 			response.StatusCode,
@@ -343,7 +343,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	default:
-		log.Error().Err(err).Msg("parseInstantList")
+		slog.Error("parseInstantList", "err", err)
 		writeErrorMessage(w, http.StatusInternalServerError, "unknown_error", "Erro desconhecido")
 		return
 	}

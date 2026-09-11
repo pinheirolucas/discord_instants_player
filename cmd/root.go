@@ -3,12 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -93,29 +92,35 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 
 	err = <-errchan
 
-	log.Info().Err(err).Msg("")
+	slog.Error("", "err", err)
 	time.Sleep(time.Second * 3)
 
 	return nil
 }
 
 func initConfig() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: "2006-01-02 15:04:05",
-	})
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				a.Value = slog.StringValue(a.Value.Time().Format("2006-01-02 15:04:05"))
+			}
+			return a
+		},
+	})))
 
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatal().Err(err).Msg("find homedir")
+			slog.Error("find homedir", "err", err)
+			os.Exit(1)
 		}
 
 		cwd, err := os.Getwd()
 		if err != nil {
-			log.Fatal().Err(err).Msg("find cwd")
+			slog.Error("find cwd", "err", err)
+			os.Exit(1)
 		}
 
 		viper.AddConfigPath(home)
@@ -131,6 +136,6 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
-		log.Info().Str("configFile", viper.ConfigFileUsed()).Msg("using config file")
+		slog.Info("using config file", "configFile", viper.ConfigFileUsed())
 	}
 }
