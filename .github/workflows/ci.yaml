@@ -28,6 +28,28 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: .tool-versions
+
+      # windows-latest ships MinGW-w64 gcc at C:\mingw64\bin but doesn't put
+      # it on PATH by default; CGO (layeh.com/gopus) needs it to build.
+      - name: Add MinGW gcc to PATH
+        run: echo "C:\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build
+        run: go build -o bin\discord_instants_player.exe .
+        env:
+          CGO_ENABLED: "1"
+
   govulncheck:
     runs-on: ubuntu-latest
 

@@ -61,4 +61,4 @@ Entry point `main.go` → `cmd.Execute()` (Cobra root command in `cmd/root.go`) 
 
 ## Distribution
 
-`discord_instants_player.iss` is an Inno Setup script used to build a Windows installer that bundles the built binary with `ffmpeg`; `.github/workflows/ci.yaml` has the build+ffmpeg-download flow, and is triggered manually (`workflow_dispatch`) — nothing runs it on push or pull request, so it has never actually run.
+`discord_instants_player.iss` is an Inno Setup script used to build a Windows installer that bundles the built binary with `ffmpeg`. `.github/workflows/ci.yaml`'s `build-windows` job actually compiles `discord_instants_player.exe` natively on a `windows-latest` runner (CGO is required for `layeh.com/gopus`, which cross-compiles poorly, hence native rather than cross-compiled) on every push and pull request; the separate `ffmpeg` job that downloads the ffmpeg bundle is still `workflow_dispatch`-only and has never run automatically.
