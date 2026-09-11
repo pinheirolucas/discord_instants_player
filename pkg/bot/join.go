@@ -1,8 +1,9 @@
 package bot
 
 import (
+	"log/slog"
+
 	"github.com/bwmarrin/discordgo"
-	"github.com/rs/zerolog/log"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 )
@@ -13,10 +14,10 @@ func (b *Bot) join(ctx *command.DiscordContext) {
 
 	guild, err := s.State.Guild(m.GuildID)
 	if err != nil {
-		log.Error().
-			Str("GuildID", m.GuildID).
-			Err(err).
-			Msg("failed to fetch guild info")
+		slog.Error("failed to fetch guild info",
+			"GuildID", m.GuildID,
+			"err", err,
+		)
 		return
 	}
 
@@ -28,10 +29,10 @@ func (b *Bot) join(ctx *command.DiscordContext) {
 
 		channel, err := s.State.Channel(vs.ChannelID)
 		if err != nil {
-			log.Error().
-				Str("ChannelID", vs.ChannelID).
-				Err(err).
-				Msg("failed to fetch voice channel info")
+			slog.Error("failed to fetch voice channel info",
+				"ChannelID", vs.ChannelID,
+				"err", err,
+			)
 			return
 		}
 
@@ -39,22 +40,22 @@ func (b *Bot) join(ctx *command.DiscordContext) {
 	}
 
 	if currentVoiceChannel == nil {
-		log.Info().
-			Str("AuthorUsername", m.Author.Username).
-			Msg("voice channel not found")
+		slog.Info("voice channel not found",
+			"AuthorUsername", m.Author.Username,
+		)
 		return
 	}
 
 	if b.vc == nil {
 		connection, err := s.ChannelVoiceJoin(guild.ID, currentVoiceChannel.ID, false, true)
 		if err != nil {
-			log.Error().
-				Str("GuildID", guild.ID).
-				Str("GuildName", guild.Name).
-				Str("ChannelID", currentVoiceChannel.ID).
-				Str("ChannelName", currentVoiceChannel.Name).
-				Err(err).
-				Msg("failed to join voice channel")
+			slog.Error("failed to join voice channel",
+				"GuildID", guild.ID,
+				"GuildName", guild.Name,
+				"ChannelID", currentVoiceChannel.ID,
+				"ChannelName", currentVoiceChannel.Name,
+				"err", err,
+			)
 			return
 		}
 		b.vc = connection

@@ -1,7 +1,7 @@
 package bot
 
 import (
-	"github.com/rs/zerolog/log"
+	"log/slog"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
 )
@@ -11,6 +11,6 @@ func (b *Bot) ping(ctx *command.DiscordContext) {
 	s := ctx.Session
 
 	if _, err := s.ChannelMessageSend(m.ChannelID, "Pong!"); err != nil {
-		log.Error().Err(err).Msg("failed to send help message")
+		slog.Error("failed to send help message", "err", err)
 	}
 }
