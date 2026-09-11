@@ -69,6 +69,8 @@ Playback itself is triggered through the HTTP API (typically by the companion UI
 | `POST /bot/stop` | Stops whatever is currently playing |
 | `GET /play?url=<clip url>` | Downloads/caches the clip and returns it as base64, without touching the bot (for local preview) |
 | `GET /instant/list?page=&search=` | Searches myinstants.com and returns matching clips |
+| `GET /openapi.yaml` | The API's OpenAPI 3.1 spec |
+| `GET /docs` | Human-readable rendering of the spec (Redoc) |
 
 ## Development
 

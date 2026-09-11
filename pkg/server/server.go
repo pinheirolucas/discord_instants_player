@@ -60,6 +60,8 @@ func (s *Server) Start(address string) error {
 	r.HandleFunc("POST /bot/stop", s.handleBotStop)
 	r.HandleFunc("GET /play", s.handlePlay)
 	r.HandleFunc("GET /instant/list", s.handleInstantList)
+	r.HandleFunc("GET /openapi.yaml", s.handleOpenAPISpec)
+	r.HandleFunc("GET /docs", s.handleDocs)
 
 	srv := &http.Server{
 		Handler: corsMiddleware(r),
