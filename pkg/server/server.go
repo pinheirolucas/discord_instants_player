@@ -342,7 +342,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 			w,
 			http.StatusInternalServerError,
 			"name_link_not_matched",
-			"A quantidade de links e botões não conincide",
+			"A quantidade de links e botões não coincide",
 		)
 		return
 	default:
