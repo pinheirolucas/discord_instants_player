@@ -19,9 +19,12 @@ info:
 
     ## Error labels
 
-    All error messages are in Portuguese, since the only client is the
-    companion desktop UI. `label` is a stable machine-readable code; the UI
-    matches on it rather than on `message` or the (unwritten) status.
+    `label` is a stable machine-readable code — match on it, not on
+    `message` or the (unwritten) status. `message` defaults to English and
+    negotiates via a standard `Accept-Language` header (currently `en-US`
+    and `pt-BR` are supported; anything else falls back to English). The
+    companion UI ignores `message` entirely and translates `label` itself,
+    so it never sends this header.
 servers:
   - url: http://localhost:9001
     description: Default local bind address (server.address / --server-address / SERVER_ADDRESS)
@@ -65,19 +68,19 @@ paths:
                   value: { data: { exitReason: stop } }
                 invalidBody:
                   summary: Body was not valid JSON (intended status 400)
-                  value: { label: invalid_body, message: "Requisição inválida" }
+                  value: { label: invalid_body, message: "Invalid request" }
                 invalidUrl:
                   summary: url is missing/malformed (intended status 400)
-                  value: { label: invalid_url, message: "A URL enviada é inválida" }
+                  value: { label: invalid_url, message: "That URL isn't valid" }
                 instantNotFound:
                   summary: Clip could not be resolved (intended status 400)
-                  value: { label: instant_not_found, message: "O instant enviado não foi encontrado" }
+                  value: { label: instant_not_found, message: "That instant couldn't be found" }
                 unsupportedAudioFormat:
                   summary: Downloaded file did not sniff as mp3 (intended status 400)
-                  value: { label: unsuported_audio_format, message: "O formato de áudio do instant enviado não é suportado" }
+                  value: { label: unsuported_audio_format, message: "That instant isn't an audio format we can play" }
                 unknownError:
                   summary: Anything else (intended status 500)
-                  value: { label: unknown_error, message: "Erro desconhecido tente novamente mais tarde" }
+                  value: { label: unknown_error, message: "Something went wrong. Try again in a moment" }
 
   /bot/stop:
     post:
@@ -125,10 +128,10 @@ paths:
                   value: { data: { exists: false } }
                 emptyUrl:
                   summary: url was missing/blank (intended status 400)
-                  value: { label: empty_url, message: "Nenhuma URL enviada" }
+                  value: { label: empty_url, message: "No URL was sent" }
                 unknownError:
                   summary: Anything else (intended status 500)
-                  value: { label: unknown_error, message: "Erro desconhecido tente novamente mais tarde" }
+                  value: { label: unknown_error, message: "Something went wrong. Try again in a moment" }
 
   /instant/list:
     get:
@@ -190,19 +193,19 @@ paths:
                   value: { data: [] }
                 invalidRegion:
                   summary: region did not match ^[a-z]{2}$ (intended status 400)
-                  value: { label: invalid_region, message: "A região enviada é inválida" }
+                  value: { label: invalid_region, message: "That region code isn't valid" }
                 httpRequest:
                   summary: Could not reach myinstants.com (intended status 500)
-                  value: { label: http_request, message: "Ocorreu um erro ao se comunicar com o site myinstants.com" }
+                  value: { label: http_request, message: "Couldn't reach myinstants.com" }
                 badHttpStatus:
                   summary: myinstants.com answered a non-200/404 status (intended status = upstream's)
-                  value: { label: bad_http_status, message: "O site myinstants.com respondeu com um status de erro" }
+                  value: { label: bad_http_status, message: "myinstants.com answered with an error" }
                 nameLinkNotMatched:
                   summary: Scrape found a different number of names and play links — markup likely changed (intended status 500)
-                  value: { label: name_link_not_matched, message: "A quantidade de links e botões não conincide" }
+                  value: { label: name_link_not_matched, message: "myinstants.com's results couldn't be read — their page layout may have changed" }
                 unknownError:
                   summary: Anything else (intended status 500)
-                  value: { label: unknown_error, message: "Erro desconhecido" }
+                  value: { label: unknown_error, message: "Something went wrong. Try again in a moment" }
 
   /openapi.yaml:
     get:
@@ -231,7 +234,10 @@ components:
           description: Present on error responses; a stable machine-readable code.
         message:
           type: string
-          description: Present on error responses; a human-readable message, in Portuguese.
+          description: >-
+            Present on error responses; a human-readable message, in
+            English by default (see the Error labels section above for
+            negotiating a different one via Accept-Language).
         data:
           description: Present on success responses; shape depends on the route.
 
