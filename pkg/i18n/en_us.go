@@ -5,7 +5,6 @@ package i18n
 var enUS = map[string]string{
 	"invalid_body":            "Invalid request",
 	"invalid_url":             "That URL isn't valid",
-	"empty_url":               "No URL was sent",
 	"instant_not_found":       "That instant couldn't be found",
 	"unsuported_audio_format": "That instant isn't an audio format we can play",
 	"invalid_region":          "That region code isn't valid",

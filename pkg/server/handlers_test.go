@@ -51,26 +51,38 @@ func decodeBody(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
 	return out
 }
 
-func TestHandlePlayRejectsAMissingURL(t *testing.T) {
+func TestHandleInstantContentRejectsAnUnusableURL(t *testing.T) {
 	s := New(instant.NewPlayer())
 
-	rec := httptest.NewRecorder()
-	s.handlePlay(rec, httptest.NewRequest(http.MethodGet, "/play", nil))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instants/not-a-url/content", nil)
+	req.SetPathValue("url", "not-a-url")
 
-	if got := decodeBody(t, rec)["label"]; got != "empty_url" {
-		t.Errorf("label = %v, want empty_url", got)
+	rec := httptest.NewRecorder()
+	s.handleInstantContent(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+	if got := decodeBody(t, rec)["label"]; got != "invalid_url" {
+		t.Errorf("label = %v, want invalid_url", got)
 	}
 }
 
-func TestHandlePlayReturnsTheClipAsADataURI(t *testing.T) {
+func TestHandleInstantContentReturnsTheClipAsADataURI(t *testing.T) {
 	const link = "https://example.com/a.mp3"
 	seedCache(t, link)
 
 	s := New(instant.NewPlayer())
 
-	rec := httptest.NewRecorder()
-	s.handlePlay(rec, httptest.NewRequest(http.MethodGet, "/play?url="+link, nil))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instants/"+link+"/content", nil)
+	req.SetPathValue("url", link)
 
+	rec := httptest.NewRecorder()
+	s.handleInstantContent(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
 	data, ok := decodeBody(t, rec)["data"].(map[string]any)
 	if !ok {
 		t.Fatalf("response had no data object: %s", rec.Body.String())
@@ -88,12 +100,47 @@ func TestHandlePlayReturnsTheClipAsADataURI(t *testing.T) {
 	}
 }
 
+func TestHandleInstantContentReportsAMissingClip(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(upstream.Close)
+
+	previous := fsutil.Default
+	fsutil.Default = &fsutil.Cache{Client: upstream.Client(), Dir: t.TempDir()}
+	t.Cleanup(func() { fsutil.Default = previous })
+
+	link := upstream.URL + "/does-not-exist.mp3"
+
+	s := New(instant.NewPlayer())
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instants/"+link+"/content", nil)
+	req.SetPathValue("url", link)
+
+	rec := httptest.NewRecorder()
+	s.handleInstantContent(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	data, ok := decodeBody(t, rec)["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("response had no data object: %s", rec.Body.String())
+	}
+	if data["exists"] != false {
+		t.Errorf("exists = %v, want false", data["exists"])
+	}
+}
+
 func TestHandleBotPlayRejectsAnInvalidBody(t *testing.T) {
 	s := New(instant.NewPlayer())
 
 	rec := httptest.NewRecorder()
-	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/bot/play", strings.NewReader("not json")))
+	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/play", strings.NewReader("not json")))
 
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
 	if got := decodeBody(t, rec)["label"]; got != "invalid_body" {
 		t.Errorf("label = %v, want invalid_body", got)
 	}
@@ -103,10 +150,38 @@ func TestHandleBotPlayRejectsAnInvalidURL(t *testing.T) {
 	s := New(instant.NewPlayer())
 
 	rec := httptest.NewRecorder()
-	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/bot/play", strings.NewReader(`{"url":"not a url"}`)))
+	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/play", strings.NewReader(`{"url":"not a url"}`)))
 
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
 	if got := decodeBody(t, rec)["label"]; got != "invalid_url" {
 		t.Errorf("label = %v, want invalid_url", got)
+	}
+}
+
+func TestHandleBotPlayReportsANotFoundClipAs404(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(upstream.Close)
+
+	previous := fsutil.Default
+	fsutil.Default = &fsutil.Cache{Client: upstream.Client(), Dir: t.TempDir()}
+	t.Cleanup(func() { fsutil.Default = previous })
+
+	link := upstream.URL + "/does-not-exist.mp3"
+
+	s := New(instant.NewPlayer())
+
+	rec := httptest.NewRecorder()
+	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if got := decodeBody(t, rec)["label"]; got != "instant_not_found" {
+		t.Errorf("label = %v, want instant_not_found", got)
 	}
 }
 
@@ -129,7 +204,11 @@ func TestHandleBotPlayReturnsOnlyOneResponseForUnsupportedAudio(t *testing.T) {
 	s := New(instant.NewPlayer())
 
 	rec := httptest.NewRecorder()
-	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
+	s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
+	}
 
 	dec := json.NewDecoder(bytes.NewReader(rec.Body.Bytes()))
 	var out map[string]any
@@ -154,7 +233,7 @@ func TestHandleBotPlayReturnsTheExitReasonWhenPlaybackEnds(t *testing.T) {
 	rec := httptest.NewRecorder()
 	done := make(chan struct{})
 	go func() {
-		s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
+		s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
 		close(done)
 	}()
 
@@ -187,18 +266,18 @@ func TestHandleBotStopReleasesAnInFlightPlay(t *testing.T) {
 	rec := httptest.NewRecorder()
 	done := make(chan struct{})
 	go func() {
-		s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
+		s.handleBotPlay(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/play", strings.NewReader(`{"url":"`+link+`"}`)))
 		close(done)
 	}()
 
 	player.GetNextPlay()
 
-	s.handleBotStop(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/bot/stop", nil))
+	s.handleBotStop(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/api/v1/bot/stop", nil))
 
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("POST /bot/stop did not release the in-flight /bot/play")
+		t.Fatal("POST /api/v1/bot/stop did not release the in-flight /api/v1/bot/play")
 	}
 	<-player.StopChan
 
@@ -212,7 +291,7 @@ func TestHandleBotStopIsSafeWhenNothingIsPlaying(t *testing.T) {
 	s := New(instant.NewPlayer())
 
 	rec := httptest.NewRecorder()
-	s.handleBotStop(rec, httptest.NewRequest(http.MethodPost, "/bot/stop", nil))
+	s.handleBotStop(rec, httptest.NewRequest(http.MethodPost, "/api/v1/bot/stop", nil))
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)

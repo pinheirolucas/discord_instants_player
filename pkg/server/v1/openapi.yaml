@@ -7,24 +7,23 @@ info:
     from myinstants.com. This is the backend for the companion Electron/React
     UI in `discord_instants_player_ui`.
 
-    ## Every response is HTTP 200
+    ## Versioning
 
-    Every route in this API answers with HTTP 200, whether it succeeded or
-    failed. Success and error are both wrapped in the same envelope
-    (`Envelope` below); tell them apart by the presence of `data` (success)
-    versus `label` (error) — never by the status code. Where a response
-    description below says "intended status", that is the status the
-    handler *would* send if it wrote one; it is documented for context only
-    and is not observed on the wire.
+    This document describes `v1`, rooted at `/api/v1`. `GET /api/docs`
+    renders a human-readable version of it (and, once a v2 exists, a
+    switcher between the two); it is deliberately not itself versioned,
+    since it documents every version.
 
     ## Error labels
 
     `label` is a stable machine-readable code — match on it, not on
-    `message` or the (unwritten) status. `message` defaults to English and
+    `message` or the HTTP status. `message` defaults to English and
     negotiates via a standard `Accept-Language` header (currently `en-US`
     and `pt-BR` are supported; anything else falls back to English). The
     companion UI ignores `message` entirely and translates `label` itself,
-    so it never sends this header.
+    so it never sends this header. Envelopes distinguish success from error
+    by the presence of `data` versus `label`, independent of status code —
+    but the status code is now also meaningful and reflects each case below.
 servers:
   - url: http://localhost:9001
     description: Default local bind address (server.address / --server-address / SERVER_ADDRESS)
@@ -32,7 +31,7 @@ security: []
 
 
 paths:
-  /bot/play:
+  /api/v1/bot/play:
     post:
       operationId: botPlay
       summary: Play a clip through the bot
@@ -40,8 +39,8 @@ paths:
         Resolves `url` to a cached/downloaded clip and starts playing it on
         the bot's current voice connection, stopping whatever is already
         playing first (a bot can only play one clip at a time). Blocks until
-        playback ends naturally or is interrupted by `POST /bot/stop`, then
-        returns which one happened.
+        playback ends naturally or is interrupted by `POST /api/v1/bot/stop`,
+        then returns which one happened.
       requestBody:
         required: true
         content:
@@ -50,75 +49,96 @@ paths:
               $ref: "#/components/schemas/BotPlayRequest"
       responses:
         "200":
-          description: >-
-            Always this status. See `data.exitReason` for success or `label`
-            for the reason it failed.
+          description: Playback finished or was interrupted; see `data.exitReason`.
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: "#/components/schemas/BotPlaySuccessEnvelope"
-                  - $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: "#/components/schemas/BotPlaySuccessEnvelope"
               examples:
                 playedToTheEnd:
                   summary: Playback finished on its own
                   value: { data: { exitReason: end } }
                 stopped:
-                  summary: Interrupted by POST /bot/stop or a newer /bot/play
+                  summary: Interrupted by POST /api/v1/bot/stop or a newer /api/v1/bot/play
                   value: { data: { exitReason: stop } }
+        "400":
+          description: The body wasn't valid JSON, or `url` is missing/malformed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 invalidBody:
-                  summary: Body was not valid JSON (intended status 400)
+                  summary: Body was not valid JSON
                   value: { label: invalid_body, message: "Invalid request" }
                 invalidUrl:
-                  summary: url is missing/malformed (intended status 400)
+                  summary: url is missing/malformed
                   value: { label: invalid_url, message: "That URL isn't valid" }
+        "404":
+          description: The clip could not be resolved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 instantNotFound:
-                  summary: Clip could not be resolved (intended status 400)
                   value: { label: instant_not_found, message: "That instant couldn't be found" }
+        "422":
+          description: The downloaded file did not sniff as mp3.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 unsupportedAudioFormat:
-                  summary: Downloaded file did not sniff as mp3 (intended status 400)
                   value: { label: unsuported_audio_format, message: "That instant isn't an audio format we can play" }
+        "500":
+          description: Anything else.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 unknownError:
-                  summary: Anything else (intended status 500)
                   value: { label: unknown_error, message: "Something went wrong. Try again in a moment" }
 
-  /bot/stop:
+  /api/v1/bot/stop:
     post:
       operationId: botStop
       summary: Stop whatever the bot is currently playing
       description: |
-        Signals the in-flight `POST /bot/play` (if any) to stop; that
+        Signals the in-flight `POST /api/v1/bot/play` (if any) to stop; that
         request then returns with `exitReason: "stop"`. Safe to call when
-        nothing is playing.
+        nothing is playing (idempotent).
       responses:
         "200":
-          description: Empty body; no Content-Type is set.
+          description: Empty body; no Content-Type is set. Always this status.
 
-  /play:
+  /api/v1/instants/{url}/content:
     get:
-      operationId: getPlay
+      operationId: getInstantContent
       summary: Fetch a clip as a base64 data URI
       description: |
-        Downloads/caches the clip at `url` (same cache the bot uses) and
-        returns it inline, without touching the bot or its voice
-        connection. Meant for local preview in the UI.
+        Downloads/caches the clip at `url` (same cache `POST /api/v1/bot/play`
+        uses) and returns it inline, without touching the bot or its voice
+        connection. Meant for local preview in the UI. `url` is the clip's
+        full myinstants.com URL, percent-encoded into this single path
+        segment (e.g. `:` becomes `%3A`, `/` becomes `%2F`).
       parameters:
         - name: url
-          in: query
+          in: path
           required: true
           schema:
             type: string
             format: uri
-          description: The myinstants.com clip URL to fetch.
+          description: The myinstants.com clip URL to fetch, percent-encoded.
       responses:
         "200":
-          description: Always this status; see `data.exists` for success or `label` for the reason it failed.
+          description: The clip resolved, or it didn't — see `data.exists`.
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: "#/components/schemas/PlaySuccessEnvelope"
-                  - $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: "#/components/schemas/InstantContentSuccessEnvelope"
               examples:
                 found:
                   summary: Clip resolved and inlined
@@ -126,14 +146,26 @@ paths:
                 notFound:
                   summary: Clip could not be resolved
                   value: { data: { exists: false } }
-                emptyUrl:
-                  summary: url was missing/blank (intended status 400)
-                  value: { label: empty_url, message: "No URL was sent" }
+        "400":
+          description: The path segment didn't decode to a usable URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                invalidUrl:
+                  value: { label: invalid_url, message: "That URL isn't valid" }
+        "500":
+          description: Anything else.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 unknownError:
-                  summary: Anything else (intended status 500)
                   value: { label: unknown_error, message: "Something went wrong. Try again in a moment" }
 
-  /instant/list:
+  /api/v1/instants:
     get:
       operationId: listInstants
       summary: List or search myinstants.com clips
@@ -143,7 +175,10 @@ paths:
         many instants came back on this page, since myinstants.com's
         listing pages no longer carry a pager: a full page (36 instants)
         means there may be another, a short page means this is the last
-        one, and an empty page means the caller paged past the end.
+        one, and an empty page means the caller paged past the end — that
+        last case is normalized into the same collection shape as a normal
+        result (`instants: []` plus the last valid `pages`), never a bare
+        empty array.
       parameters:
         - name: page
           in: query
@@ -169,17 +204,11 @@ paths:
           description: Two-letter region code, case-insensitive. Ignored when search is set.
       responses:
         "200":
-          description: >-
-            Always this status. `bad_http_status` carries myinstants.com's
-            own upstream status as its "intended status" — it is still
-            written as 200 like every other case.
+          description: One or more matches, or a search paged past its end.
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: "#/components/schemas/InstantListSuccessEnvelope"
-                  - $ref: "#/components/schemas/EmptyListSuccessEnvelope"
-                  - $ref: "#/components/schemas/ErrorEnvelope"
+                $ref: "#/components/schemas/InstantListSuccessEnvelope"
               examples:
                 results:
                   summary: One or more matches
@@ -190,38 +219,59 @@ paths:
                       pages: 2
                 pastLastPage:
                   summary: A search paged past its end (upstream answered 404)
-                  value: { data: [] }
+                  value: { data: { instants: [], pages: 4 } }
+        "400":
+          description: region did not match ^[a-z]{2}$.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 invalidRegion:
-                  summary: region did not match ^[a-z]{2}$ (intended status 400)
                   value: { label: invalid_region, message: "That region code isn't valid" }
-                httpRequest:
-                  summary: Could not reach myinstants.com (intended status 500)
-                  value: { label: http_request, message: "Couldn't reach myinstants.com" }
-                badHttpStatus:
-                  summary: myinstants.com answered a non-200/404 status (intended status = upstream's)
-                  value: { label: bad_http_status, message: "myinstants.com answered with an error" }
+        "500":
+          description: The scrape found a different number of names and play links (markup likely changed), or anything else unexpected.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
                 nameLinkNotMatched:
-                  summary: Scrape found a different number of names and play links — markup likely changed (intended status 500)
                   value: { label: name_link_not_matched, message: "myinstants.com's results couldn't be read — their page layout may have changed" }
                 unknownError:
-                  summary: Anything else (intended status 500)
                   value: { label: unknown_error, message: "Something went wrong. Try again in a moment" }
+        "502":
+          description: myinstants.com could not be reached, or answered with a bad status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+              examples:
+                httpRequest:
+                  summary: Could not reach myinstants.com
+                  value: { label: http_request, message: "Couldn't reach myinstants.com" }
+                badHttpStatus:
+                  summary: myinstants.com answered a non-200/404 status
+                  value: { label: bad_http_status, message: "myinstants.com answered with an error" }
 
-  /openapi.yaml:
+  /api/v1/openapi.yaml:
     get:
-      operationId: getOpenApiSpec
+      operationId: getOpenApiSpecV1
       summary: This document
       responses:
         "200":
-          description: The OpenAPI document, as YAML.
+          description: The v1 OpenAPI document, as YAML.
 
-  /docs:
+  /api/docs:
     get:
       operationId: getDocs
-      summary: Human-readable rendering of this document
+      summary: Human-readable rendering of the API's OpenAPI documents
+      description: >-
+        Not versioned — one docs page for every API version, rendered via
+        Redoc with a version switcher above the spec (currently just `v1`).
       responses:
         "200":
-          description: An HTML page rendering /openapi.yaml.
+          description: An HTML page rendering the available OpenAPI documents.
 
 components:
   schemas:
@@ -271,7 +321,7 @@ components:
                   enum: [end, stop]
                   description: end = playback finished naturally; stop = interrupted.
 
-    PlaySuccessEnvelope:
+    InstantContentSuccessEnvelope:
       allOf:
         - $ref: "#/components/schemas/Envelope"
         - type: object
@@ -304,21 +354,12 @@ components:
           properties:
             data:
               type: object
+              required: [instants, pages]
               properties:
                 instants:
                   type: array
                   items:
                     $ref: "#/components/schemas/InstantButton"
+                  description: Always present, even when empty (e.g. a search paged past its end).
                 pages:
                   type: integer
-
-    EmptyListSuccessEnvelope:
-      allOf:
-        - $ref: "#/components/schemas/Envelope"
-        - type: object
-          required: [data]
-          properties:
-            data:
-              type: array
-              maxItems: 0
-              description: Always empty; sent when a search pages past its last result.

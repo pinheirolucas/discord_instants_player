@@ -58,12 +58,12 @@ func (s *Server) httpClient() *http.Client {
 func (s *Server) Start(address string) error {
 	r := http.NewServeMux()
 
-	r.HandleFunc("POST /bot/play", s.handleBotPlay)
-	r.HandleFunc("POST /bot/stop", s.handleBotStop)
-	r.HandleFunc("GET /play", s.handlePlay)
-	r.HandleFunc("GET /instant/list", s.handleInstantList)
-	r.HandleFunc("GET /openapi.yaml", s.handleOpenAPISpec)
-	r.HandleFunc("GET /docs", s.handleDocs)
+	r.HandleFunc("POST /api/v1/bot/play", s.handleBotPlay)
+	r.HandleFunc("POST /api/v1/bot/stop", s.handleBotStop)
+	r.HandleFunc("GET /api/v1/instants", s.handleListInstants)
+	r.HandleFunc("GET /api/v1/instants/{url}/content", s.handleInstantContent)
+	r.HandleFunc("GET /api/v1/openapi.yaml", s.handleOpenAPISpec)
+	r.HandleFunc("GET /api/docs", s.handleDocs)
 
 	srv := &http.Server{
 		Handler: corsMiddleware(r),
@@ -111,6 +111,7 @@ func writeErrorMessage(w http.ResponseWriter, status int, lang language.Tag, lab
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(out); err != nil {
 		http.Error(w, "unknown error", http.StatusInternalServerError)
 	}
@@ -152,10 +153,10 @@ func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
 		writeErrorMessage(w, http.StatusBadRequest, lang, "invalid_url")
 		return
 	case fsutil.ErrNotFound:
-		writeErrorMessage(w, http.StatusBadRequest, lang, "instant_not_found")
+		writeErrorMessage(w, http.StatusNotFound, lang, "instant_not_found")
 		return
 	case fsutil.ErrUnsuportedAudioFormat:
-		writeErrorMessage(w, http.StatusBadRequest, lang, "unsuported_audio_format")
+		writeErrorMessage(w, http.StatusUnprocessableEntity, lang, "unsuported_audio_format")
 		return
 	default:
 		writeErrorMessage(w, http.StatusInternalServerError, lang, "unknown_error")
@@ -169,12 +170,12 @@ func (s *Server) handleBotStop(w http.ResponseWriter, r *http.Request) {
 	s.player.Stop()
 }
 
-func (s *Server) handlePlay(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleInstantContent(w http.ResponseWriter, r *http.Request) {
 	lang := languageFor(r)
 
-	url := r.URL.Query().Get("url")
-	if strings.TrimSpace(url) == "" {
-		writeErrorMessage(w, http.StatusBadRequest, lang, "empty_url")
+	url := r.PathValue("url")
+	if !instant.IsLinkValid(url) {
+		writeErrorMessage(w, http.StatusBadRequest, lang, "invalid_url")
 		return
 	}
 
@@ -193,8 +194,8 @@ type instantButton struct {
 }
 
 type instantListResponse struct {
-	Instants []*instantButton `json:"instants,omitempty"`
-	Pages    int              `json:"pages,omitempty"`
+	Instants []*instantButton `json:"instants"`
+	Pages    int              `json:"pages"`
 }
 
 // pageSize is how many instants myinstants.com puts on a full page. Their pages
@@ -229,7 +230,7 @@ func totalPages(page, count int) int {
 }
 
 // parseInstantList turns a myinstants.com listing page into the API response.
-// Split out of handleInstantList so the scraping — the part most likely to break
+// Split out of handleListInstants so the scraping — the part most likely to break
 // when their markup changes — can be tested against a fixture instead of the
 // live site.
 func parseInstantList(r io.Reader, baseURL string, page int) (*instantListResponse, error) {
@@ -238,8 +239,8 @@ func parseInstantList(r io.Reader, baseURL string, page int) (*instantListRespon
 		return nil, err
 	}
 
-	var names []string
-	var links []string
+	names := []string{}
+	links := []string{}
 
 	document.Find(".instant-link").Each(func(i int, anchor *goquery.Selection) {
 		names = append(names, anchor.Text())
@@ -263,7 +264,7 @@ func parseInstantList(r io.Reader, baseURL string, page int) (*instantListRespon
 		return nil, errNameLinkMismatch
 	}
 
-	var instants []*instantButton
+	instants := []*instantButton{}
 	for i, name := range names {
 		instants = append(instants, &instantButton{
 			Name: name,
@@ -277,7 +278,7 @@ func parseInstantList(r io.Reader, baseURL string, page int) (*instantListRespon
 	}, nil
 }
 
-func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleListInstants(w http.ResponseWriter, r *http.Request) {
 	lang := languageFor(r)
 	vars := r.URL.Query()
 
@@ -310,7 +311,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	response, err := s.httpClient().Get(url)
 	if err != nil {
 		slog.Error("http.Get", "err", err)
-		writeErrorMessage(w, http.StatusInternalServerError, lang, "http_request")
+		writeErrorMessage(w, http.StatusBadGateway, lang, "http_request")
 		return
 	}
 	defer response.Body.Close()
@@ -319,11 +320,14 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	case http.StatusOK:
 		// continue
 	case http.StatusNotFound:
-		writeSuccessResponse(w, []*instantButton{})
+		writeSuccessResponse(w, &instantListResponse{
+			Instants: []*instantButton{},
+			Pages:    totalPages(page, 0),
+		})
 		return
 	default:
 		slog.Error("Bad http status", "StatusCode", response.StatusCode)
-		writeErrorMessage(w, response.StatusCode, lang, "bad_http_status")
+		writeErrorMessage(w, http.StatusBadGateway, lang, "bad_http_status")
 		return
 	}
 

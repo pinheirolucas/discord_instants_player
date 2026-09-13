@@ -9,10 +9,50 @@
         margin: 0;
         padding: 0;
       }
+      #version-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 8px 16px;
+        background: #fafafa;
+        border-bottom: 1px solid #e1e1e1;
+        font-family: sans-serif;
+      }
+      #version-tabs button {
+        border: 1px solid #d6d6d6;
+        background: #fff;
+        border-radius: 4px;
+        padding: 4px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      #version-tabs button.active {
+        background: #2d2d2d;
+        color: #fff;
+        border-color: #2d2d2d;
+      }
     </style>
   </head>
   <body>
-    <redoc spec-url="/openapi.yaml"></redoc>
+    <div id="version-tabs"></div>
+    <redoc spec-url="/api/v1/openapi.yaml"></redoc>
     <script src="https://cdn.jsdelivr.net/npm/redoc@2/bundles/redoc.standalone.js"></script>
+    <script>
+      const versions = [{ label: "v1", specUrl: "/api/v1/openapi.yaml" }];
+
+      const tabs = document.getElementById("version-tabs");
+      const redoc = document.querySelector("redoc");
+
+      versions.forEach((version, i) => {
+        const button = document.createElement("button");
+        button.textContent = version.label;
+        button.className = i === 0 ? "active" : "";
+        button.addEventListener("click", () => {
+          redoc.setAttribute("spec-url", version.specUrl);
+          tabs.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+          button.classList.add("active");
+        });
+        tabs.appendChild(button);
+      });
+    </script>
   </body>
 </html>
