@@ -12,9 +12,11 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/text/language"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
 	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
+	"github.com/pinheirolucas/discord_instants_player/pkg/i18n"
 	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
 )
 
@@ -90,10 +92,22 @@ type response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func writeErrorMessage(w http.ResponseWriter, status int, label string, message string) {
+// languageFor negotiates the response language from an optional
+// Accept-Language header, defaulting to English. The UI never sends this
+// header — it already translates by label on its own — so this exists for
+// any other client.
+func languageFor(r *http.Request) language.Tag {
+	if header := r.Header.Get("Accept-Language"); header != "" {
+		return i18n.MatchAcceptLanguage(header)
+	}
+
+	return i18n.Supported[0]
+}
+
+func writeErrorMessage(w http.ResponseWriter, status int, lang language.Tag, label string) {
 	out := &response{
 		Label:   label,
-		Message: message,
+		Message: i18n.Text(lang, label),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -122,9 +136,11 @@ type botPlayResponse struct {
 }
 
 func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
+	lang := languageFor(r)
+
 	in := new(botPlayRequest)
 	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
-		writeErrorMessage(w, http.StatusBadRequest, "invalid_body", "Requisição inválida")
+		writeErrorMessage(w, http.StatusBadRequest, lang, "invalid_body")
 		return
 	}
 
@@ -133,26 +149,16 @@ func (s *Server) handleBotPlay(w http.ResponseWriter, r *http.Request) {
 	case nil:
 		// continue
 	case instant.ErrInvalidLink:
-		writeErrorMessage(w, http.StatusBadRequest, "invalid_url", "A URL enviada é inválida")
+		writeErrorMessage(w, http.StatusBadRequest, lang, "invalid_url")
 		return
 	case fsutil.ErrNotFound:
-		writeErrorMessage(w, http.StatusBadRequest, "instant_not_found", "O instant enviado não foi encontrado")
+		writeErrorMessage(w, http.StatusBadRequest, lang, "instant_not_found")
 		return
 	case fsutil.ErrUnsuportedAudioFormat:
-		writeErrorMessage(
-			w,
-			http.StatusBadRequest,
-			"unsuported_audio_format",
-			"O formato de áudio do instant enviado não é suportado",
-		)
+		writeErrorMessage(w, http.StatusBadRequest, lang, "unsuported_audio_format")
 		return
 	default:
-		writeErrorMessage(
-			w,
-			http.StatusInternalServerError,
-			"unknown_error",
-			"Erro desconhecido tente novamente mais tarde",
-		)
+		writeErrorMessage(w, http.StatusInternalServerError, lang, "unknown_error")
 		return
 	}
 
@@ -164,20 +170,17 @@ func (s *Server) handleBotStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePlay(w http.ResponseWriter, r *http.Request) {
+	lang := languageFor(r)
+
 	url := r.URL.Query().Get("url")
 	if strings.TrimSpace(url) == "" {
-		writeErrorMessage(w, http.StatusBadRequest, "empty_url", "Nenhuma URL enviada")
+		writeErrorMessage(w, http.StatusBadRequest, lang, "empty_url")
 		return
 	}
 
 	info, err := instant.GetPlayable(url)
 	if err != nil {
-		writeErrorMessage(
-			w,
-			http.StatusInternalServerError,
-			"unknown_error",
-			"Erro desconhecido tente novamente mais tarde",
-		)
+		writeErrorMessage(w, http.StatusInternalServerError, lang, "unknown_error")
 		return
 	}
 
@@ -275,6 +278,7 @@ func parseInstantList(r io.Reader, baseURL string, page int) (*instantListRespon
 }
 
 func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
+	lang := languageFor(r)
 	vars := r.URL.Query()
 
 	region := strings.ToLower(strings.TrimSpace(vars.Get("region")))
@@ -282,7 +286,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		region = defaultRegion
 	}
 	if !regionPattern.MatchString(region) {
-		writeErrorMessage(w, http.StatusBadRequest, "invalid_region", "A região enviada é inválida")
+		writeErrorMessage(w, http.StatusBadRequest, lang, "invalid_region")
 		return
 	}
 
@@ -306,12 +310,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	response, err := s.httpClient().Get(url)
 	if err != nil {
 		slog.Error("http.Get", "err", err)
-		writeErrorMessage(
-			w,
-			http.StatusInternalServerError,
-			"http_request",
-			"Ocorreu um erro ao se comunicar com o site myinstants.com",
-		)
+		writeErrorMessage(w, http.StatusInternalServerError, lang, "http_request")
 		return
 	}
 	defer response.Body.Close()
@@ -324,12 +323,7 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		slog.Error("Bad http status", "StatusCode", response.StatusCode)
-		writeErrorMessage(
-			w,
-			response.StatusCode,
-			"bad_http_status",
-			"O site myinstants.com respondeu com um status de erro",
-		)
+		writeErrorMessage(w, response.StatusCode, lang, "bad_http_status")
 		return
 	}
 
@@ -338,16 +332,11 @@ func (s *Server) handleInstantList(w http.ResponseWriter, r *http.Request) {
 	case nil:
 		// continue
 	case errNameLinkMismatch:
-		writeErrorMessage(
-			w,
-			http.StatusInternalServerError,
-			"name_link_not_matched",
-			"A quantidade de links e botões não coincide",
-		)
+		writeErrorMessage(w, http.StatusInternalServerError, lang, "name_link_not_matched")
 		return
 	default:
 		slog.Error("parseInstantList", "err", err)
-		writeErrorMessage(w, http.StatusInternalServerError, "unknown_error", "Erro desconhecido")
+		writeErrorMessage(w, http.StatusInternalServerError, lang, "unknown_error")
 		return
 	}
 
