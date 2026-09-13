@@ -6,12 +6,12 @@ require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/disgoorg/disgo v0.19.6
 	github.com/libp2p/zeroconf/v2 v2.2.0
+	github.com/pion/opus v0.1.1-0.20260909212711-b8ebd659d671
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/thomas-vilte/dave-go v0.5.1
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/text v0.41.0
-	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
 )
 
 require (
