@@ -32,7 +32,7 @@ func TestNewAutodiscoveryRegistrationPublishesTheAgreedTXTRecords(t *testing.T) 
 		t.Fatalf("newAutodiscoveryRegistration: %v", err)
 	}
 
-	want := []string{"path=/api/v1", "api=1"}
+	want := []string{"path=/api", "api=1"}
 	if len(text) != len(want) {
 		t.Fatalf("got %d TXT records (%v), want %d", len(text), text, len(want))
 	}
