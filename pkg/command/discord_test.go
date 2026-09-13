@@ -6,6 +6,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"golang.org/x/text/language"
 )
 
 func messageWith(content string) *events.MessageCreate {
@@ -96,21 +97,42 @@ func TestRegisterOverwritesSameCommand(t *testing.T) {
 	if which != "second" {
 		t.Errorf("dispatched to %q handler, want the most recently registered one", which)
 	}
-	if strings.Contains(d.GetHelp(), "first") {
+	if strings.Contains(d.GetHelp(language.BrazilianPortuguese), "first") {
 		t.Error("GetHelp still lists the replaced help text")
 	}
 }
 
+// "responde pong" and "entra no canal" are not real pkg/i18n keys; GetHelp
+// falls back to a key it doesn't recognize by printing the key itself, which
+// is exactly what lets this test assert on them without touching the catalog.
 func TestGetHelpListsEveryRegisteredCommand(t *testing.T) {
 	d := NewDiscordDispatcher()
 	d.Register("!ping", "responde pong", func(ctx *DiscordContext) {})
 	d.Register("!join", "entra no canal", func(ctx *DiscordContext) {})
 
-	help := d.GetHelp()
+	help := d.GetHelp(language.BrazilianPortuguese)
 
 	for _, want := range []string{"Comandos disponíveis:", "!ping", "responde pong", "!join", "entra no canal"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("GetHelp() missing %q\ngot:\n%s", want, help)
 		}
+	}
+}
+
+func TestGetHelpResolvesRealKeysPerLocale(t *testing.T) {
+	d := NewDiscordDispatcher()
+	d.Register("!ping", "bot.ping.help", func(ctx *DiscordContext) {})
+
+	ptBR := d.GetHelp(language.BrazilianPortuguese)
+	if !strings.Contains(ptBR, "Teste para verificar se o bot está online") {
+		t.Errorf("GetHelp(pt-BR) missing the Portuguese help text:\n%s", ptBR)
+	}
+
+	enUS := d.GetHelp(language.AmericanEnglish)
+	if !strings.Contains(enUS, "Checks whether the bot is online") {
+		t.Errorf("GetHelp(en-US) missing the English help text:\n%s", enUS)
+	}
+	if !strings.Contains(enUS, "Available commands:") {
+		t.Errorf("GetHelp(en-US) missing the English header:\n%s", enUS)
 	}
 }

@@ -17,8 +17,10 @@ import (
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/voice"
 	davesession "github.com/thomas-vilte/dave-go/session"
+	"golang.org/x/text/language"
 
 	"github.com/pinheirolucas/discord_instants_player/pkg/command"
+	"github.com/pinheirolucas/discord_instants_player/pkg/i18n"
 	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
 	"github.com/pinheirolucas/discord_instants_player/pkg/opusaudio"
 )
@@ -26,6 +28,10 @@ import (
 type Bot struct {
 	token string
 	owner string
+
+	// locale overrides per-guild locale detection when set (bot.locale),
+	// for a single-owner bot that wants a fixed response language.
+	locale string
 
 	vc     voice.Conn
 	disp   *command.DiscordDispatcher
@@ -39,9 +45,9 @@ func New(token string, player *instant.Player, options ...Option) (*Bot, error) 
 		player: player,
 	}
 
-	b.disp.Register("!ping", "Teste para verificar se o bot está online", b.ping)
-	b.disp.Register("!join", "Chamar o bot para o canal de áudio em que você está", b.join)
-	b.disp.Register("!help", "Mostrar informações de utilização", b.help)
+	b.disp.Register("!ping", "bot.ping.help", b.ping)
+	b.disp.Register("!join", "bot.join.help", b.join)
+	b.disp.Register("!help", "bot.help.help", b.help)
 
 	for _, option := range options {
 		option(b)
@@ -141,10 +147,32 @@ func (b *Bot) handleMessages(e *events.MessageCreate) {
 
 	if e.GuildID == nil {
 		_, _ = e.Client().Rest.CreateMessage(e.ChannelID, discord.MessageCreate{
-			Content: "Maninho, eu não funciono em mensagens privadas.",
+			Content: i18n.Text(b.localeFor(e), "bot.dm_refused"),
 		})
 		return
 	}
 
 	b.disp.Dispatch(e)
+}
+
+// localeFor resolves the language a response to e should be written in: the
+// configured bot.locale override always wins, for a single-owner bot that
+// wants a fixed language regardless of guild; otherwise the invoking guild's
+// own PreferredLocale. A DM carries no guild at all, so it falls straight
+// through to pkg/i18n's own English default.
+func (b *Bot) localeFor(e *events.MessageCreate) language.Tag {
+	if b.locale != "" {
+		return i18n.Match(b.locale)
+	}
+
+	if e.GuildID == nil {
+		return i18n.Supported[0]
+	}
+
+	guild, ok := e.Client().Caches.Guild(*e.GuildID)
+	if !ok {
+		return i18n.Supported[0]
+	}
+
+	return i18n.Match(guild.PreferredLocale)
 }
