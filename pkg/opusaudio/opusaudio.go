@@ -10,7 +10,6 @@ package opusaudio
 
 import (
 	"bufio"
-	"encoding/binary"
 	"io"
 	"os"
 	"os/exec"
@@ -18,7 +17,7 @@ import (
 	"sync"
 
 	"github.com/disgoorg/disgo/voice"
-	"layeh.com/gopus"
+	"github.com/pion/opus"
 )
 
 // Technically the below settings can be adjusted however that poses
@@ -49,7 +48,7 @@ var OnError = func(str string, err error) {
 type ffmpegOpusProvider struct {
 	cmd     *exec.Cmd
 	stdout  *bufio.Reader
-	encoder *gopus.Encoder
+	encoder *opus.Encoder
 	stop    <-chan bool
 
 	closeOnce sync.Once
@@ -71,7 +70,13 @@ func newFfmpegOpusProvider(filename string, stop <-chan bool) (*ffmpegOpusProvid
 		return nil, nil, err
 	}
 
-	encoder, err := gopus.NewEncoder(frameRate, channels, gopus.Audio)
+	encoder, err := opus.NewEncoder(
+		opus.WithChannels(channels),
+		opus.WithApplication(opus.ApplicationAudio),
+		opus.WithBitrate(96000),
+		opus.WithComplexity(10),
+		opus.WithVBR(true),
+	)
 	if err != nil {
 		_ = cmd.Process.Kill()
 		return nil, nil, err
@@ -97,8 +102,8 @@ func (p *ffmpegOpusProvider) ProvideOpusFrame() ([]byte, error) {
 	default:
 	}
 
-	pcm := make([]int16, frameSize*channels)
-	if err := binary.Read(p.stdout, binary.LittleEndian, &pcm); err != nil {
+	pcm := make([]byte, frameSize*channels*2)
+	if _, err := io.ReadFull(p.stdout, pcm); err != nil {
 		if err != io.EOF && err != io.ErrUnexpectedEOF {
 			OnError("error reading from ffmpeg stdout", err)
 		}
@@ -106,14 +111,15 @@ func (p *ffmpegOpusProvider) ProvideOpusFrame() ([]byte, error) {
 		return nil, io.EOF
 	}
 
-	opus, err := p.encoder.Encode(pcm, frameSize, maxBytes)
+	out := make([]byte, maxBytes)
+	n, err := p.encoder.Encode(pcm, out)
 	if err != nil {
 		OnError("encoding error", err)
 		p.finish()
 		return nil, io.EOF
 	}
 
-	return opus, nil
+	return out[:n], nil
 }
 
 // Close implements voice.OpusFrameProvider. disgo calls it when the
