@@ -5,12 +5,7 @@ import (
 	"net/http"
 )
 
-// openAPISpec is served as-is at GET /openapi.yaml. It is hand-written and
-// maintained alongside the handlers below rather than generated — see
-// CLAUDE.md for why. Keep it in sync when a route's request/response shape
-// changes.
-//
-//go:embed openapi.yaml
+//go:embed v1/openapi.yaml
 var openAPISpec []byte
 
 //go:embed docs.html

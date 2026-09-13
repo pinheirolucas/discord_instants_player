@@ -30,12 +30,12 @@ func TestOpenAPISpecIsValidYAML(t *testing.T) {
 	}
 
 	wantPaths := []string{
-		"/bot/play",
-		"/bot/stop",
-		"/play",
-		"/instant/list",
-		"/openapi.yaml",
-		"/docs",
+		"/api/v1/bot/play",
+		"/api/v1/bot/stop",
+		"/api/v1/instants/{url}/content",
+		"/api/v1/instants",
+		"/api/v1/openapi.yaml",
+		"/api/docs",
 	}
 	for _, p := range wantPaths {
 		if _, ok := doc.Paths[p]; !ok {
@@ -48,7 +48,7 @@ func TestHandleOpenAPISpecServesTheEmbeddedDocument(t *testing.T) {
 	s := New(instant.NewPlayer())
 
 	rec := httptest.NewRecorder()
-	s.handleOpenAPISpec(rec, httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil))
+	s.handleOpenAPISpec(rec, httptest.NewRequest(http.MethodGet, "/api/v1/openapi.yaml", nil))
 
 	if got := rec.Header().Get("Content-Type"); got != "application/yaml" {
 		t.Errorf("Content-Type = %q, want application/yaml", got)
@@ -62,12 +62,12 @@ func TestHandleDocsServesAnHTMLPageReferencingTheSpec(t *testing.T) {
 	s := New(instant.NewPlayer())
 
 	rec := httptest.NewRecorder()
-	s.handleDocs(rec, httptest.NewRequest(http.MethodGet, "/docs", nil))
+	s.handleDocs(rec, httptest.NewRequest(http.MethodGet, "/api/docs", nil))
 
 	if got := rec.Header().Get("Content-Type"); got != "text/html" {
 		t.Errorf("Content-Type = %q, want text/html", got)
 	}
-	if !strings.Contains(rec.Body.String(), "/openapi.yaml") {
-		t.Error("docs page does not reference /openapi.yaml")
+	if !strings.Contains(rec.Body.String(), "/api/v1/openapi.yaml") {
+		t.Error("docs page does not reference /api/v1/openapi.yaml")
 	}
 }

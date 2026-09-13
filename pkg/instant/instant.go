@@ -11,7 +11,7 @@ import (
 )
 
 type Instant struct {
-	Exists  bool   `json:"exists,omitempty"`
+	Exists  bool   `json:"exists"`
 	Content string `json:"content,omitempty"`
 }
 

@@ -5,7 +5,6 @@ package i18n
 var ptBR = map[string]string{
 	"invalid_body":            "Requisição inválida",
 	"invalid_url":             "A URL enviada é inválida",
-	"empty_url":               "Nenhuma URL enviada",
 	"instant_not_found":       "O instant enviado não foi encontrado",
 	"unsuported_audio_format": "O formato de áudio do instant enviado não é suportado",
 	"invalid_region":          "A região enviada é inválida",

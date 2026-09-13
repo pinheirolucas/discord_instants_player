@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	autodiscoveryPathRecord = "path=/"
+	autodiscoveryPathRecord = "path=/api/v1"
 	autodiscoveryAPIRecord  = "api=1"
 )
 
