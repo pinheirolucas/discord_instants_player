@@ -35,17 +35,47 @@ Config is loaded via Viper from (in order of precedence) CLI flags, environment 
 - `bot.token` / `--bot-token` / `BOT_TOKEN` — Discord bot OAuth token.
 - `server.address` / `--server-address` / `SERVER_ADDRESS` — address the HTTP API binds to (e.g. `0.0.0.0:9001`).
 
-`cmd/root.go` fails fast (before starting anything) if any of these three are missing.
+`cmd/root.go` fails fast (before starting anything) if any of these three are missing. `bot.locale` / `--bot-locale` / `BOT_LOCALE` is optional — see "Internationalization" below.
 
 ## Architecture
 
 Entry point `main.go` → `cmd.Execute()` (Cobra root command in `cmd/root.go`) parses config/flags and then starts two long-running goroutines against a single shared `*instant.Player`:
 
-- **`pkg/bot`** — the Discord client (`disgoorg/disgo`, migrated off `bwmarrin/discordgo` because it has no support for Discord's mandatory DAVE/E2EE voice protocol). `bot.New` registers chat commands (`!ping`, `!join`, `!help`) against a `command.DiscordDispatcher` (see `pkg/command/discord.go`), which does simple whitespace-tokenized string matching on `!command` prefixes to route messages — there's no argument parsing beyond splitting on spaces. Only messages from `bot.owner` are dispatched (`handleMessages` in `pkg/bot/bot.go`). Guilds/channels/voice-states are uncached by disgo unless explicitly enabled (`bot.WithCacheConfigOpts` in `bot.Start()`) — `!join` depends on all three. Voice DAVE/E2EE encryption is handled by `thomas-vilte/dave-go` (a pure-Go DAVE implementation, wired in via `voice.WithDaveSessionCreateFunc` in `bot.Start()`) — without it, voice defaults to an unencrypted no-op session that Discord's gateway now rejects outright with close code `4017`. `Bot.Start()` runs a loop that blocks on `player.GetNextPlay()` and streams the resulting file into the current voice connection via `pkg/opusaudio`, which decodes with `ffmpeg` and encodes to Opus with `layeh.com/gopus`, handing frames to disgo's voice package as a pull-based `OpusFrameProvider` (disgo pulls frames on its own 20ms clock, rather than accepting a push channel the way discordgo's voice API did).
+- **`pkg/bot`** — the Discord client (`disgoorg/disgo`, migrated off `bwmarrin/discordgo` because it has no support for Discord's mandatory DAVE/E2EE voice protocol). `bot.New` registers chat commands (`!ping`, `!join`, `!help`) against a `command.DiscordDispatcher` (see `pkg/command/discord.go`), which does simple whitespace-tokenized string matching on `!command` prefixes to route messages — there's no argument parsing beyond splitting on spaces. `Register`'s second argument is a `pkg/i18n` key, not rendered text (see "Internationalization" below); `GetHelp` resolves it per call, since the response locale is only known at dispatch time. Only messages from `bot.owner` are dispatched (`handleMessages` in `pkg/bot/bot.go`). Guilds/channels/voice-states are uncached by disgo unless explicitly enabled (`bot.WithCacheConfigOpts` in `bot.Start()`) — `!join` depends on all three. Voice DAVE/E2EE encryption is handled by `thomas-vilte/dave-go` (a pure-Go DAVE implementation, wired in via `voice.WithDaveSessionCreateFunc` in `bot.Start()`) — without it, voice defaults to an unencrypted no-op session that Discord's gateway now rejects outright with close code `4017`. `Bot.Start()` runs a loop that blocks on `player.GetNextPlay()` and streams the resulting file into the current voice connection via `pkg/opusaudio`, which decodes with `ffmpeg` and encodes to Opus with `layeh.com/gopus`, handing frames to disgo's voice package as a pull-based `OpusFrameProvider` (disgo pulls frames on its own 20ms clock, rather than accepting a push channel the way discordgo's voice API did).
 - **`pkg/server`** — the HTTP API (stdlib `net/http.ServeMux` with Go 1.22 method patterns like `"POST /bot/play"`; a small custom `corsMiddleware` in `pkg/server/cors.go` for CORS-with-`*`, replacing an earlier `gorilla/handlers` dependency). Routes: `POST /bot/play` (play a URL through the bot, blocks until playback ends/stops and returns the exit reason), `POST /bot/stop`, `GET /play?url=` (fetch/cache a clip and return it as a base64 data URI, without touching the bot), `GET /instant/list?page=&search=&region=` (scrapes a `myinstants.com` listing page with `goquery` — this and the clip download in `pkg/fsutil` are the only integration points with myinstants.com, and the scrape is fragile to markup changes; see "Talking to myinstants.com" below), `GET /openapi.yaml` and `GET /docs` (the API spec and its Redoc-rendered page; see "API spec" below). The server also registers a zeroconf/mDNS advertisement (`_myinstants._tcp`, see `pkg/server/autodiscovery.go`) on the same port so the UI can auto-discover the backend on the LAN instead of hardcoding an address. The advertisement carries two TXT records, `path=/` (reserves room for a future base path) and `api=1` (lets a client refuse a bot it cannot talk to); the instance name stays `<hostname>-<port>`, which clients match on, so don't change it. The service is visible on the wire — a Node `bonjour-service` client discovered the running bot at `http://10.0.0.133:9001` and got HTTP 200 from `/instant/list`. It is *not* visible to macOS's own `dns-sd -B`, because `libp2p/zeroconf` answers multicast directly instead of registering with `mDNSResponder`, so the system tool has nothing to list — debug with a client that reads the wire, not with `dns-sd`. The UI now browses for the advertisement, falling back to `http://localhost:9001`.
 - **`pkg/instant`** — the shared state machine. `Player` (`pkg/instant/player.go`) is a single-slot, mutex-guarded player: `Play()` pushes a file path onto `playChan`, blocks until either `endChan` or `internalStop` fires, and returns which one ("end"/"stop"); it only supports one playback at a time and calling `Play` while something is already playing stops the current one first. `GetPlayable`/`GetFromCache` (`pkg/fsutil/fsutil.go`) resolve a myinstants URL to a local cached file, downloading+validating (must sniff as mp3 via `h2non/filetype`) into `~/.instants/<md5(url)>.mp3` on first access.
 - Both the bot loop and any HTTP handler that calls `player.Play` share the *same* player — there's no queueing beyond the single in-flight slot, so `/bot/play` requests serialize through it.
-- Errors surfaced from `pkg/instant`/`pkg/fsutil` (`ErrInvalidLink`, `fsutil.ErrNotFound`, `fsutil.ErrUnsuportedAudioFormat`) are mapped to specific HTTP status codes/messages (in Portuguese) in `pkg/server/server.go` — follow that pattern when adding new error cases rather than falling through to the generic 500. Note that `writeErrorMessage` never actually writes the status it is given, so every error goes out as HTTP 200 with a `label`; the UI relies on the label, not the status.
+- Errors surfaced from `pkg/instant`/`pkg/fsutil` (`ErrInvalidLink`, `fsutil.ErrNotFound`, `fsutil.ErrUnsuportedAudioFormat`) are mapped to specific HTTP status codes/labels in `pkg/server/server.go` — follow that pattern when adding new error cases rather than falling through to the generic 500. Note that `writeErrorMessage` never actually writes the status it is given, so every error goes out as HTTP 200 with a `label`; the UI relies on the label, not the status. See "Internationalization" below for where the `message` text that goes with each `label` actually lives.
+
+## Internationalization
+
+`pkg/i18n` is a small, hand-rolled catalog (`map[language.Tag]map[string]string`,
+plus `x/text/language.NewMatcher` for negotiation) covering the API's error
+messages and the bot's command descriptions — not a framework like
+`nicksnyder/go-i18n`, since there are no plural forms and only two locales to
+justify one. `en_us.go` and `pt_br.go` hold the two catalogs; `Text(tag, key)`
+resolves a key, falling back to English and finally to the key itself, so a
+key this catalog doesn't recognize surfaces as an odd string rather than a
+blank response.
+
+**API errors default to English**, negotiated per request via an optional
+`Accept-Language` header (`languageFor` in `pkg/server/server.go`) — the
+companion UI never sends this header, since it already translates by `label`
+on its own and only reads `message` as a fallback for a label it doesn't
+recognize. `writeErrorMessage` takes a `label` and a `language.Tag`, not a
+literal string, so a message can no longer drift from the catalog the way
+`unknown_error` once shipped two different Portuguese texts under one label.
+
+**The bot's response language follows the invoking guild.** `Bot.localeFor`
+(`pkg/bot/bot.go`) resolves it per message: the `bot.locale` config value
+always wins when set (a single-owner bot that wants a fixed language
+regardless of server); otherwise the guild's own `PreferredLocale`, read from
+disgo's guild cache (`client.Caches.Guild(guildID)` — the same cache `!join`
+already depends on, so `bot.WithCacheConfigOpts(cache.FlagGuilds)` in
+`bot.Start()` has to stay enabled); a DM carries no guild at all and falls
+straight through to `pkg/i18n`'s own English default. Command triggers
+(`!ping`, `!join`, `!help`) are exact map keys in the dispatcher and stay
+English — only their descriptions and the DM-refusal message translate.
 
 ## Talking to myinstants.com
 

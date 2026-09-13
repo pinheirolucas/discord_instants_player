@@ -37,8 +37,9 @@ Settings can be provided via config file, environment variable, or CLI flag (in 
 | Bot owner | `bot.owner` | `--bot-owner` | `BOT_OWNER` | Discord username allowed to command the bot |
 | Bot token | `bot.token` | `--bot-token` | `BOT_TOKEN` | Discord application OAuth token |
 | Server address | `server.address` | `--server-address` | `SERVER_ADDRESS` | Address the HTTP API binds to, e.g. `0.0.0.0:9001` |
+| Bot locale | `bot.locale` | `--bot-locale` | `BOT_LOCALE` | Optional. Fixes the bot's response language (e.g. `en-US`, `pt-BR`) instead of following each Discord server's own locale |
 
-All three are required; the app exits immediately if any are missing.
+The first three are required; the app exits immediately if any are missing. Bot locale is optional.
 
 The config file is YAML, named `.discord_instants_player.yaml`, and is looked up in your home directory or the current working directory. See [`.discord_instants_player.sample.yaml`](./.discord_instants_player.sample.yaml) for a template:
 

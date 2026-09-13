@@ -6,6 +6,9 @@ import (
 	"sync"
 
 	"github.com/disgoorg/disgo/events"
+	"golang.org/x/text/language"
+
+	"github.com/pinheirolucas/discord_instants_player/pkg/i18n"
 )
 
 type DiscordDispatcher struct {
@@ -14,7 +17,7 @@ type DiscordDispatcher struct {
 }
 
 type discordHandlerInfo struct {
-	help        string
+	helpKey     string
 	handlerFunc DiscordHandler
 }
 
@@ -32,10 +35,13 @@ type DiscordContext struct {
 
 type DiscordHandler func(ctx *DiscordContext)
 
-func (d *DiscordDispatcher) Register(cmd string, help string, h DiscordHandler) {
+// Register takes a help key into pkg/i18n, not rendered text — the locale to
+// render it in is only known at dispatch time (GetHelp resolves it per call),
+// not at registration time.
+func (d *DiscordDispatcher) Register(cmd string, helpKey string, h DiscordHandler) {
 	d.Lock()
 	d.handlers[cmd] = &discordHandlerInfo{
-		help:        help,
+		helpKey:     helpKey,
 		handlerFunc: h,
 	}
 	d.Unlock()
@@ -61,12 +67,12 @@ func (d *DiscordDispatcher) Dispatch(e *events.MessageCreate) {
 	})
 }
 
-func (d *DiscordDispatcher) GetHelp() string {
-	help := "Comandos disponíveis:\n"
+func (d *DiscordDispatcher) GetHelp(lang language.Tag) string {
+	help := i18n.Text(lang, "bot.help.header") + "\n"
 
 	d.Lock()
 	for cmd, info := range d.handlers {
-		help += fmt.Sprintf("`%s`: %s\n", cmd, info.help)
+		help += fmt.Sprintf("`%s`: %s\n", cmd, i18n.Text(lang, info.helpKey))
 	}
 	d.Unlock()
 

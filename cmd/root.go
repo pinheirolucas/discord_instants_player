@@ -47,6 +47,9 @@ func init() {
 
 	rootCmd.PersistentFlags().String("server-address", "", "address to bind the http server")
 	viper.BindPFlag("server.address", rootCmd.PersistentFlags().Lookup("server-address"))
+
+	rootCmd.PersistentFlags().String("bot-locale", "", "fixes the bot's response language (e.g. en-US, pt-BR); defaults to the invoking guild's own locale")
+	viper.BindPFlag("bot.locale", rootCmd.PersistentFlags().Lookup("bot-locale"))
 }
 
 func runRootCmd(cmd *cobra.Command, args []string) error {
@@ -65,13 +68,15 @@ func runRootCmd(cmd *cobra.Command, args []string) error {
 		return errors.New("server address not provided")
 	}
 
+	locale := viper.GetString("bot.locale")
+
 	errchan := make(chan error, 1)
 	defer close(errchan)
 
 	player := instant.NewPlayer()
 	defer player.Close()
 
-	b, err := bot.New(token, player, bot.WithOwner(owner))
+	b, err := bot.New(token, player, bot.WithOwner(owner), bot.WithLocale(locale))
 	if err != nil {
 		return fmt.Errorf("failed to create a bot: %w", err)
 	}
