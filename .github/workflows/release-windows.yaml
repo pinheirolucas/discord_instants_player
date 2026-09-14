@@ -1,0 +1,50 @@
+name: Release (Windows installer)
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Set up repo
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: .tool-versions
+
+      - name: Test
+        run: go test -timeout 90s ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build exe
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          go build -trimpath `
+            -ldflags "-s -w -X github.com/pinheirolucas/discord_instants_player/cmd.Version=$version" `
+            -o bin\discord_instants_player.exe .
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=$version discord_instants_player.iss
+
+      - name: Publish to the tag's release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes \
+              $( [[ "$GITHUB_REF_NAME" == *-* ]] && echo --prerelease )
+          gh release upload "$GITHUB_REF_NAME" dist/setup_discord_instants_player_windows.exe --clobber

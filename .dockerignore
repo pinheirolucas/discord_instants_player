@@ -1,0 +1,10 @@
+.git
+.github
+bin
+dist
+assets
+cp.out
+nohup.out
+*.iss
+.discord_instants_player*
+!.discord_instants_player.sample.yaml
