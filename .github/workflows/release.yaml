@@ -140,8 +140,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          EXPECTED_ASSETS: 7
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes \
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --draft --generate-notes \
               $( [[ "${{ needs.version.outputs.prerelease }}" == "true" ]] && echo --prerelease )
+
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+
+          count=$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets | length')
+          if [ "$count" -ge "$EXPECTED_ASSETS" ]; then
+            gh release edit "$GITHUB_REF_NAME" --draft=false
+          fi
