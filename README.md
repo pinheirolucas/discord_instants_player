@@ -13,7 +13,6 @@ A Discord bot that joins a voice channel and plays short audio clips ("instants"
 ## Requirements
 
 - Go 1.14+
-- [ffmpeg](https://ffmpeg.org/) available on `PATH` (used to transcode/stream audio into the Discord voice connection)
 - A Discord bot application/token — see the [Discord developer docs](https://discord.com/developers/docs/intro) to create one
 
 ## Installation
@@ -26,7 +25,7 @@ make build
 
 The binary is built to `./bin/discord_instants_player`.
 
-A prebuilt Windows installer (bundling ffmpeg) can also be produced from `discord_instants_player.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php).
+A prebuilt Windows installer can also be produced from `discord_instants_player.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php).
 
 ## Configuration
 

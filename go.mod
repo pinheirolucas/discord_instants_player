@@ -5,6 +5,7 @@ go 1.27
 require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/disgoorg/disgo v0.19.6
+	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/libp2p/zeroconf/v2 v2.2.0
 	github.com/pion/opus v0.1.1-0.20260909212711-b8ebd659d671
 	github.com/spf13/cobra v1.10.2

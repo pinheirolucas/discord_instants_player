@@ -17,19 +17,13 @@ OutputBaseFilename=setup_discord_instants_player_windows
 OutputDir=dist
 Compression=lzma
 SolidCompression=yes
-ChangesEnvironment=yes
 PrivilegesRequired=none
-
-[Registry]
-Root: HKCU; Subkey: "Environment"; ValueType:string; ValueName: "Path"; ValueData: "{olddata};{app}\ffmpeg\bin"; Flags: preservestringtype; Check: NeedsAddPath('{app}\ffmpeg\bin')
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
 Source: "bin\discord_instants_player.exe"; DestDir: "{app}"
-Source: "bin\ffmpeg.zip"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "bin\unzip.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: "{group}\instants-server"; Filename: "{cmd}"; Parameters: "/c ""{app}\discord_instants_player.exe"""
@@ -38,24 +32,11 @@ Name: "{commondesktop}\instants-server"; Filename: "{cmd}"; Parameters: "/c ""{a
 
 [Run]
 Filename: "{app}\discord_instants_player.exe"; Description: "{cm:LaunchProgram,Discord Instants Player}"; Flags: nowait postinstall skipifsilent
-Filename: "{tmp}\unzip.exe"; Parameters: "-oq ""{tmp}\ffmpeg.zip"" -d ""{app}\ffmpeg"""
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
 
 [Code]
-function NeedsAddPath(Param: string): boolean;
-var
-  OrigPath: string;
-begin
-  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then
-  begin
-    Result := True;
-    exit;
-  end;
-  Result := Pos(';' + ExpandConstant(Param) + ';', ';' + OrigPath + ';') = 0;
-end;
-
 var BotSettingsPage: TInputQueryWizardPage;
 procedure InitializeWizard;
 begin
