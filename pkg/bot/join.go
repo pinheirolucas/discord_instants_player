@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/command"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/command"
 )
 
 func (b *Bot) join(ctx *command.DiscordContext) {

@@ -14,13 +14,13 @@ ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
-    -ldflags "-s -w -X github.com/pinheirolucas/discord_instants_player/cmd.Version=${VERSION}" \
-    -o /out/discord_instants_player .
+    -ldflags "-s -w -X github.com/pinheirolucas/peace-breaker-bot/cmd.Version=${VERSION}" \
+    -o /out/peace-breaker-bot .
 
 FROM scratch
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /out/discord_instants_player /discord_instants_player
+COPY --from=builder /out/peace-breaker-bot /peace-breaker-bot
 
 ENV HOME=/home/app
 USER 65532:65532
@@ -28,4 +28,4 @@ USER 65532:65532
 VOLUME /home/app/.instants
 EXPOSE 9001
 
-ENTRYPOINT ["/discord_instants_player"]
+ENTRYPOINT ["/peace-breaker-bot"]

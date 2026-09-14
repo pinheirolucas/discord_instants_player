@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/httpclient"
 )
 
 var (

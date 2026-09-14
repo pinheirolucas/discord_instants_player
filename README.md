@@ -1,6 +1,6 @@
-# discord_instants_player
+# Peace Breaker Bot
 
-A Discord bot that joins a voice channel and plays short audio clips ("instants", like the ones on [myinstants.com](https://www.myinstants.com)) on command, paired with a local HTTP API for controlling playback and searching myinstants.com. This is the backend service; the desktop UI that drives it lives in the sibling repo [`discord_instants_player_ui`](https://github.com/pinheirolucas/discord_instants_player_ui).
+A Discord bot that joins a voice channel and plays short audio clips ("instants", like the ones on [myinstants.com](https://www.myinstants.com)) on command, paired with a local HTTP API for controlling playback and searching myinstants.com. This is the backend service; the desktop UI that drives it lives in the sibling repo [`peace-breaker-bot-desktop`](https://github.com/pinheirolucas/peace-breaker-bot-desktop).
 
 ## Features
 
@@ -25,13 +25,13 @@ cd discord_instants_player
 make build
 ```
 
-The binary is built to `./bin/discord_instants_player`.
+The binary is built to `./bin/peace-breaker-bot`.
 
 ### Prebuilt binaries
 
 Every tagged release publishes plain binaries for Linux, macOS, and Windows (amd64 and arm64, where applicable) on the [Releases page](https://github.com/pinheirolucas/discord_instants_player/releases) — no build toolchain and, as of the pure-Go audio pipeline, no runtime dependency either. Download and run.
 
-A Windows installer (built from `discord_instants_player.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php)) is published alongside them for anyone who'd rather have Start Menu shortcuts, an uninstaller, and a settings wizard that writes `.discord_instants_player.yaml` for you.
+A Windows installer (built from `discord_instants_player.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php)) is published alongside them for anyone who'd rather have Start Menu shortcuts, an uninstaller, and a settings wizard that writes `.peace-breaker-bot.yaml` for you.
 
 ### Docker
 
@@ -57,11 +57,11 @@ Settings can be provided via config file, environment variable, or CLI flag (in 
 
 The first three are required; the app exits immediately if any are missing. Bot locale is optional.
 
-The config file is YAML, named `.discord_instants_player.yaml`, and is looked up in your home directory or the current working directory. See [`.discord_instants_player.sample.yaml`](./.discord_instants_player.sample.yaml) for a template:
+The config file is YAML, named `.peace-breaker-bot.yaml`, and is looked up in your home directory or the current working directory. See [`.peace-breaker-bot.sample.yaml`](./.peace-breaker-bot.sample.yaml) for a template:
 
 ```bash
-cp .discord_instants_player.sample.yaml ~/.discord_instants_player.yaml
-# edit ~/.discord_instants_player.yaml with your bot owner/token
+cp .peace-breaker-bot.sample.yaml ~/.peace-breaker-bot.yaml
+# edit ~/.peace-breaker-bot.yaml with your bot owner/token
 ```
 
 ## Usage

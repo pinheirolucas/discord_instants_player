@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/pinheirolucas/discord_instants_player/cmd"
+	"github.com/pinheirolucas/peace-breaker-bot/cmd"
 )
 
 func main() {

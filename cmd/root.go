@@ -11,9 +11,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/bot"
-	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
-	"github.com/pinheirolucas/discord_instants_player/pkg/server"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/bot"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/instant"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/server"
 )
 
 var cfgFile string
@@ -23,7 +23,7 @@ var cfgFile string
 var Version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:           "discord_instants_player",
+	Use:           "peace-breaker-bot",
 	Short:         "Application layer that manages the bot and creates an HTTP inteface for controlling the bot playback",
 	Version:       Version,
 	SilenceErrors: true,
@@ -42,7 +42,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.discord_instants_player.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.peace-breaker-bot.yaml)")
 
 	rootCmd.PersistentFlags().String("bot-owner", "", "bot owner username")
 	viper.BindPFlag("bot.owner", rootCmd.PersistentFlags().Lookup("bot-owner"))
@@ -135,7 +135,7 @@ func initConfig() {
 
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(cwd)
-		viper.SetConfigName(".discord_instants_player")
+		viper.SetConfigName(".peace-breaker-bot")
 	}
 
 	replacer := strings.NewReplacer(

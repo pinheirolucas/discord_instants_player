@@ -19,10 +19,10 @@ import (
 	davesession "github.com/thomas-vilte/dave-go/session"
 	"golang.org/x/text/language"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/command"
-	"github.com/pinheirolucas/discord_instants_player/pkg/i18n"
-	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
-	"github.com/pinheirolucas/discord_instants_player/pkg/opusaudio"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/command"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/i18n"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/instant"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/opusaudio"
 )
 
 type Bot struct {

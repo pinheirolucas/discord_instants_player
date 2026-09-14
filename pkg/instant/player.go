@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/fsutil"
 )
 
 var ErrInvalidLink = errors.New("invalid link")

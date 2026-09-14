@@ -1,7 +1,7 @@
 .PHONY = build run
 
-PACKAGE_NAME = github.com/pinheirolucas/discord_instants_player
-BIN = ./bin/discord_instants_player
+PACKAGE_NAME = github.com/pinheirolucas/peace-breaker-bot
+BIN = ./bin/peace-breaker-bot
 
 build:
 	go build -o ${BIN} ${PACKAGE_NAME}

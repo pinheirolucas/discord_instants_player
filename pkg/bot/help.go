@@ -5,7 +5,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/command"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/command"
 )
 
 func (b *Bot) help(ctx *command.DiscordContext) {
