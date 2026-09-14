@@ -1,6 +1,6 @@
 ARG VERSION=dev
 
-FROM golang:1.27.1-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS builder
 WORKDIR /src
 
 COPY go.mod go.sum ./
@@ -11,7 +11,9 @@ COPY . .
 RUN apk add --no-cache ca-certificates
 
 ARG VERSION
-RUN CGO_ENABLED=0 go build -trimpath \
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath \
     -ldflags "-s -w -X github.com/pinheirolucas/discord_instants_player/cmd.Version=${VERSION}" \
     -o /out/discord_instants_player .
 
