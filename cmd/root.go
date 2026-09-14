@@ -18,9 +18,14 @@ import (
 
 var cfgFile string
 
+// Version is the build version, set via -ldflags "-X ...cmd.Version=..." at
+// release time. Left at its default for `go build`/`go run` and dev binaries.
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
 	Use:           "discord_instants_player",
 	Short:         "Application layer that manages the bot and creates an HTTP inteface for controlling the bot playback",
+	Version:       Version,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	RunE:          runRootCmd,
