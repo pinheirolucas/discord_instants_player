@@ -82,6 +82,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ needs.version.outputs.version }}
+          cache-from: type=gha,scope=discord-instants-player
+          cache-to: type=gha,mode=max,scope=discord-instants-player
 
   binaries:
     needs: [version, gate]
