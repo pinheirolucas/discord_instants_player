@@ -20,8 +20,8 @@ A Discord bot that joins a voice channel and plays short audio clips ("instants"
 ### From source
 
 ```bash
-git clone https://github.com/pinheirolucas/discord_instants_player.git
-cd discord_instants_player
+git clone https://github.com/pinheirolucas/peace-breaker-bot.git
+cd peace-breaker-bot
 make build
 ```
 
@@ -29,9 +29,9 @@ The binary is built to `./bin/peace-breaker-bot`.
 
 ### Prebuilt binaries
 
-Every tagged release publishes plain binaries for Linux, macOS, and Windows (amd64 and arm64, where applicable) on the [Releases page](https://github.com/pinheirolucas/discord_instants_player/releases) — no build toolchain and, as of the pure-Go audio pipeline, no runtime dependency either. Download and run.
+Every tagged release publishes plain binaries for Linux, macOS, and Windows (amd64 and arm64, where applicable) on the [Releases page](https://github.com/pinheirolucas/peace-breaker-bot/releases) — no build toolchain and, as of the pure-Go audio pipeline, no runtime dependency either. Download and run.
 
-A Windows installer (built from `discord_instants_player.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php)) is published alongside them for anyone who'd rather have Start Menu shortcuts, an uninstaller, and a settings wizard that writes `.peace-breaker-bot.yaml` for you.
+A Windows installer (built from `peace-breaker-bot.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php)) is published alongside them for anyone who'd rather have Start Menu shortcuts, an uninstaller, and a settings wizard that writes `.peace-breaker-bot.yaml` for you.
 
 ### Docker
 
@@ -39,10 +39,10 @@ A Windows installer (built from `discord_instants_player.iss` with [Inno Setup](
 docker run -d --name instants \
   -e BOT_OWNER=yourname -e BOT_TOKEN=... -e SERVER_ADDRESS=0.0.0.0:9001 \
   -p 9001:9001 -v instants-cache:/home/app/.instants \
-  ghcr.io/pinheirolucas/discord_instants_player:latest
+  ghcr.io/pinheirolucas/peace-breaker-bot:latest
 ```
 
-Images are published to [GitHub Container Registry](https://github.com/pinheirolucas/discord_instants_player/pkgs/container/discord_instants_player) on every tagged release, for `linux/amd64` and `linux/arm64`, tagged by exact version (`:1.4.0`), minor track (`:1.4`), and `:latest`. The `-v` mount persists the downloaded-clip cache (`~/.instants` inside the container) across restarts.
+Images are published to [GitHub Container Registry](https://github.com/pinheirolucas/peace-breaker-bot/pkgs/container/peace-breaker-bot) on every tagged release, for `linux/amd64` and `linux/arm64`, tagged by exact version (`:1.4.0`), minor track (`:1.4`), and `:latest`. The `-v` mount persists the downloaded-clip cache (`~/.instants` inside the container) across restarts.
 
 ## Configuration
 
