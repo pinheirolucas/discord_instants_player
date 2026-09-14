@@ -12,7 +12,7 @@ The `.svg` files are the masters; the PNGs are renders of them at the sizes abov
 
 ## avatar
 
-Fita, the desktop UI's app icon (`assets/icon/` in `discord_instants_player_ui`): an ink cassette with
+Fita, the desktop UI's app icon (`assets/icon/` in `peace-breaker-bot-desktop`): an ink cassette with
 mustard reels on enamel blue, with the same geometry and colours. Unlike the UI's masters it is a full
 square with no platform mask, because Discord crops avatars to a circle itself. The cassette clears
 that circle.

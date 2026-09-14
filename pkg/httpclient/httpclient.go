@@ -14,7 +14,7 @@ import (
 )
 
 // UserAgent identifies the app to myinstants.com.
-const UserAgent = "discord_instants_player/1.0"
+const UserAgent = "peace-breaker-bot/1.0"
 
 const timeout = 30 * time.Second
 

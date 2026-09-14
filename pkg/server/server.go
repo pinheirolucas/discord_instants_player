@@ -14,10 +14,10 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/text/language"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
-	"github.com/pinheirolucas/discord_instants_player/pkg/httpclient"
-	"github.com/pinheirolucas/discord_instants_player/pkg/i18n"
-	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/fsutil"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/httpclient"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/i18n"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/instant"
 )
 
 const autodiscoveryServiceName = "_myinstants._tcp"

@@ -8,7 +8,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/instant"
 )
 
 // TestOpenAPISpecIsValidYAML guards the one thing that can't be caught by

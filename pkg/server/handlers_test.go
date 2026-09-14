@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pinheirolucas/discord_instants_player/pkg/fsutil"
-	"github.com/pinheirolucas/discord_instants_player/pkg/instant"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/fsutil"
+	"github.com/pinheirolucas/peace-breaker-bot/pkg/instant"
 )
 
 // seedCache points the shared fsutil cache at a temp dir holding a fixture for

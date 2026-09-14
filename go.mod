@@ -1,4 +1,4 @@
-module github.com/pinheirolucas/discord_instants_player
+module github.com/pinheirolucas/peace-breaker-bot
 
 go 1.27
 

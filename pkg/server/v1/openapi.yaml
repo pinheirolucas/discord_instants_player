@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
-  title: discord_instants_player API
+  title: Peace Breaker Bot API
   version: "1.0"
   description: |
     HTTP API for controlling the Discord bot's playback and for reading
     from myinstants.com. This is the backend for the companion Electron/React
-    UI in `discord_instants_player_ui`.
+    UI in `peace-breaker-bot-desktop`.
 
     ## Versioning
 
