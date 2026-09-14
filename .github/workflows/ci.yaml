@@ -41,7 +41,7 @@ jobs:
           go-version-file: .tool-versions
 
       - name: Build
-        run: go build -o bin\discord_instants_player.exe .
+        run: go build -o bin\peace-breaker-bot.exe .
 
   govulncheck:
     runs-on: ubuntu-latest

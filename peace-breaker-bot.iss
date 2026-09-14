@@ -10,14 +10,14 @@
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{71968401-DB93-438D-9B91-1C18EB9A05D1}
-AppName=Discord Instants Player
+AppName=Peace Breaker Bot
 AppVersion={#MyAppVersion}
-;AppVerName=Discord Instants Player 1.0
+;AppVerName=Peace Breaker Bot 1.0
 AppPublisher=github.com/pinheirolucas
-DefaultDirName={commonpf}\Discord Instants Player
-DefaultGroupName=Discord Instants Player
+DefaultDirName={commonpf}\Peace Breaker Bot
+DefaultGroupName=Peace Breaker Bot
 AllowNoIcons=yes
-OutputBaseFilename=setup_discord_instants_player_windows
+OutputBaseFilename=setup-peace-breaker-bot-windows
 OutputDir=dist
 Compression=lzma
 SolidCompression=yes
@@ -27,15 +27,15 @@ PrivilegesRequired=none
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "bin\discord_instants_player.exe"; DestDir: "{app}"
+Source: "bin\peace-breaker-bot.exe"; DestDir: "{app}"
 
 [Icons]
-Name: "{group}\instants-server"; Filename: "{cmd}"; Parameters: "/c ""{app}\discord_instants_player.exe"""
-Name: "{group}\{cm:UninstallProgram,Discord Instants Player}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\instants-server"; Filename: "{cmd}"; Parameters: "/c ""{app}\discord_instants_player.exe"""; Tasks: desktopicon
+Name: "{group}\Peace Breaker Bot"; Filename: "{cmd}"; Parameters: "/c ""{app}\peace-breaker-bot.exe"""
+Name: "{group}\{cm:UninstallProgram,Peace Breaker Bot}"; Filename: "{uninstallexe}"
+Name: "{commondesktop}\Peace Breaker Bot"; Filename: "{cmd}"; Parameters: "/c ""{app}\peace-breaker-bot.exe"""; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\discord_instants_player.exe"; Description: "{cm:LaunchProgram,Discord Instants Player}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\peace-breaker-bot.exe"; Description: "{cm:LaunchProgram,Peace Breaker Bot}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
@@ -57,7 +57,7 @@ var
 begin
   Docs := ExpandConstant('{userdocs}');
   Delete(Docs, Pos('Documents', Docs), length('Documents'));
-  Result := Docs + '.discord_instants_player.yaml'
+  Result := Docs + '.peace-breaker-bot.yaml'
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

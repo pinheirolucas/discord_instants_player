@@ -18,5 +18,5 @@
 # ...except audio fixtures, which tests need committed.
 !**/testdata/*.mp3
 bin
-.discord_instants_player*
-!.discord_instants_player.sample.yaml
+.peace-breaker-bot*
+!.peace-breaker-bot.sample.yaml
