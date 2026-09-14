@@ -70,6 +70,7 @@ jobs:
             type=semver,pattern={{version}},value=v${{ needs.version.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=v${{ needs.version.outputs.version }}
             type=raw,value=latest,enable=${{ needs.version.outputs.prerelease == 'false' }}
+            type=raw,value=nightly
 
       - name: Build and push
         uses: docker/build-push-action@v6
