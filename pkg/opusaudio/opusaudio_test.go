@@ -1,6 +1,7 @@
 package opusaudio
 
 import (
+	"io"
 	"math"
 	"testing"
 
@@ -8,9 +9,9 @@ import (
 )
 
 // TestEncodeDecodeRoundTrip encodes a synthetic tone with the same encoder
-// settings newFfmpegOpusProvider uses and decodes it back with pion/opus's
+// settings newMp3OpusProvider uses and decodes it back with pion/opus's
 // own Decoder, as a cheap guard against an encoder swap silently breaking
-// the bitstream. It needs neither ffmpeg nor a live voice connection.
+// the bitstream. It needs no mp3 fixture or a live voice connection.
 func TestEncodeDecodeRoundTrip(t *testing.T) {
 	encoder, err := opus.NewEncoder(
 		opus.WithChannels(channels),
@@ -59,5 +60,71 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 	}
 	if !nonZero {
 		t.Fatal("decoded PCM is all zero")
+	}
+}
+
+// TestMp3OpusProviderDecodesFixture decodes a real mp3 fixture end to end
+// through go-mp3, the resampler, and the Opus encoder, as a guard against
+// the decode pipeline silently producing empty or corrupt frames.
+func TestMp3OpusProviderDecodesFixture(t *testing.T) {
+	stop := make(chan bool)
+	provider, done, err := newMp3OpusProvider("testdata/valid.mp3", stop)
+	if err != nil {
+		t.Fatalf("newMp3OpusProvider: %v", err)
+	}
+
+	frames := 0
+	nonEmpty := false
+	for {
+		frame, err := provider.ProvideOpusFrame()
+		if err != nil {
+			if err != io.EOF {
+				t.Fatalf("ProvideOpusFrame: %v", err)
+			}
+			break
+		}
+		frames++
+		if len(frame) > 0 {
+			nonEmpty = true
+		}
+	}
+
+	if frames == 0 {
+		t.Fatal("decoded zero Opus frames from the fixture")
+	}
+	if !nonEmpty {
+		t.Fatal("every decoded Opus frame was empty")
+	}
+
+	select {
+	case <-done:
+	default:
+		t.Fatal("done channel should be closed once playback ends naturally")
+	}
+}
+
+// TestMp3OpusProviderStopsEarly checks that signalling stop before any
+// frame is pulled ends playback immediately, without decoding the file.
+func TestMp3OpusProviderStopsEarly(t *testing.T) {
+	stop := make(chan bool, 1)
+	stop <- true
+
+	provider, done, err := newMp3OpusProvider("testdata/valid.mp3", stop)
+	if err != nil {
+		t.Fatalf("newMp3OpusProvider: %v", err)
+	}
+
+	frame, err := provider.ProvideOpusFrame()
+	if err != io.EOF {
+		t.Fatalf("ProvideOpusFrame error = %v, want io.EOF", err)
+	}
+	if frame != nil {
+		t.Fatalf("ProvideOpusFrame frame = %v, want nil", frame)
+	}
+
+	select {
+	case <-done:
+	default:
+		t.Fatal("done channel should be closed once stop is signalled")
 	}
 }

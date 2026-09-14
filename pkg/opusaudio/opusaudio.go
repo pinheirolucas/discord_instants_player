@@ -1,9 +1,9 @@
-// Package opusaudio decodes clips to PCM via ffmpeg and encodes them to
-// Opus on demand for disgo's voice package.
+// Package opusaudio decodes cached mp3 clips to PCM with a pure-Go
+// decoder and encodes them to Opus on demand for disgo's voice package.
 //
 // disgo pulls audio rather than accepting a push channel: its AudioSender
 // calls OpusFrameProvider.ProvideOpusFrame() on its own 20ms clock, handling
-// the speaking indicator and silence frames itself. ffmpegOpusProvider only
+// the speaking indicator and silence frames itself. mp3OpusProvider only
 // has to hand back the next encoded frame (or io.EOF once the clip, or a
 // stop signal, ends it).
 package opusaudio
@@ -12,11 +12,10 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"os/exec"
-	"strconv"
 	"sync"
 
 	"github.com/disgoorg/disgo/voice"
+	"github.com/hajimehoshi/go-mp3"
 	"github.com/pion/opus"
 )
 
@@ -42,12 +41,12 @@ var OnError = func(str string, err error) {
 	}
 }
 
-// ffmpegOpusProvider implements voice.OpusFrameProvider over an ffmpeg
-// process decoding one clip to raw PCM, encoding each frame to Opus as
-// disgo's AudioSender pulls it.
-type ffmpegOpusProvider struct {
-	cmd     *exec.Cmd
-	stdout  *bufio.Reader
+// mp3OpusProvider implements voice.OpusFrameProvider over an mp3 file
+// decoded to raw PCM and resampled to frameRate, encoding each frame to
+// Opus as disgo's AudioSender pulls it.
+type mp3OpusProvider struct {
+	file    *os.File
+	pcm     *bufio.Reader
 	encoder *opus.Encoder
 	stop    <-chan bool
 
@@ -55,20 +54,22 @@ type ffmpegOpusProvider struct {
 	done      chan struct{}
 }
 
-// newFfmpegOpusProvider starts ffmpeg decoding filename to PCM. The returned
-// done channel closes once playback ends, naturally or via stop, so callers
-// can block until it's over.
-func newFfmpegOpusProvider(filename string, stop <-chan bool) (*ffmpegOpusProvider, <-chan struct{}, error) {
-	cmd := exec.Command("ffmpeg", "-i", filename, "-f", "s16le", "-ar", strconv.Itoa(frameRate), "-ac", strconv.Itoa(channels), "pipe:1")
-
-	stdout, err := cmd.StdoutPipe()
+// newMp3OpusProvider opens filename and decodes it to PCM as it's read.
+// The returned done channel closes once playback ends, naturally or via
+// stop, so callers can block until it's over.
+func newMp3OpusProvider(filename string, stop <-chan bool) (*mp3OpusProvider, <-chan struct{}, error) {
+	file, err := os.Open(filename)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := cmd.Start(); err != nil {
+	decoder, err := mp3.NewDecoder(file)
+	if err != nil {
+		_ = file.Close()
 		return nil, nil, err
 	}
+
+	resampled := NewResampler(decoder, decoder.SampleRate(), frameRate, channels)
 
 	encoder, err := opus.NewEncoder(
 		opus.WithChannels(channels),
@@ -78,13 +79,13 @@ func newFfmpegOpusProvider(filename string, stop <-chan bool) (*ffmpegOpusProvid
 		opus.WithVBR(true),
 	)
 	if err != nil {
-		_ = cmd.Process.Kill()
+		_ = file.Close()
 		return nil, nil, err
 	}
 
-	p := &ffmpegOpusProvider{
-		cmd:     cmd,
-		stdout:  bufio.NewReaderSize(stdout, 16384),
+	p := &mp3OpusProvider{
+		file:    file,
+		pcm:     bufio.NewReaderSize(resampled, 16384),
 		encoder: encoder,
 		stop:    stop,
 		done:    make(chan struct{}),
@@ -94,7 +95,7 @@ func newFfmpegOpusProvider(filename string, stop <-chan bool) (*ffmpegOpusProvid
 }
 
 // ProvideOpusFrame implements voice.OpusFrameProvider.
-func (p *ffmpegOpusProvider) ProvideOpusFrame() ([]byte, error) {
+func (p *mp3OpusProvider) ProvideOpusFrame() ([]byte, error) {
 	select {
 	case <-p.stop:
 		p.finish()
@@ -103,9 +104,9 @@ func (p *ffmpegOpusProvider) ProvideOpusFrame() ([]byte, error) {
 	}
 
 	pcm := make([]byte, frameSize*channels*2)
-	if _, err := io.ReadFull(p.stdout, pcm); err != nil {
+	if _, err := io.ReadFull(p.pcm, pcm); err != nil {
 		if err != io.EOF && err != io.ErrUnexpectedEOF {
-			OnError("error reading from ffmpeg stdout", err)
+			OnError("error reading decoded mp3 PCM", err)
 		}
 		p.finish()
 		return nil, io.EOF
@@ -124,13 +125,13 @@ func (p *ffmpegOpusProvider) ProvideOpusFrame() ([]byte, error) {
 
 // Close implements voice.OpusFrameProvider. disgo calls it when the
 // provider is replaced by a new one or the Conn is closed.
-func (p *ffmpegOpusProvider) Close() {
+func (p *mp3OpusProvider) Close() {
 	p.finish()
 }
 
-func (p *ffmpegOpusProvider) finish() {
+func (p *mp3OpusProvider) finish() {
 	p.closeOnce.Do(func() {
-		_ = p.cmd.Process.Kill()
+		_ = p.file.Close()
 		close(p.done)
 	})
 }
@@ -138,9 +139,9 @@ func (p *ffmpegOpusProvider) finish() {
 // PlayAudioFile plays filename over the given voice.Conn and blocks until
 // playback ends or stop is signalled.
 func PlayAudioFile(conn voice.Conn, filename string, stop <-chan bool) {
-	provider, done, err := newFfmpegOpusProvider(filename, stop)
+	provider, done, err := newMp3OpusProvider(filename, stop)
 	if err != nil {
-		OnError("failed to start ffmpeg", err)
+		OnError("failed to decode mp3", err)
 		return
 	}
 

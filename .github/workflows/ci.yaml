@@ -57,29 +57,3 @@ jobs:
 
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-
-  ffmpeg:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Fetch ffmpeg release metadata
-        id: ffmpeg-metadata
-        run: echo "version=$(curl -s https://www.gyan.dev/ffmpeg/builds/release-version)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore ffmpeg cache
-        uses: actions/cache@v6
-        with:
-          path: bin
-          key: ${{ runner.os }}-ffmpeg-${{ steps.ffmpeg-metadata.outputs.version }}
-
-      - name: Download latest ffmpeg build from release branch
-        run: |
-          if [ -d bin ]; then
-            echo "No ffmpeg update available"
-            exit 0
-          fi
-
-          echo "Updating ffmpeg..."
-          mkdir bin
-          curl -fso bin/ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
