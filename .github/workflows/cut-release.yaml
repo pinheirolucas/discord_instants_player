@@ -1,0 +1,77 @@
+name: Cut Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version part to bump"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+        required: true
+      prerelease:
+        description: "Tag as a release candidate (vX.Y.Z-rcN) instead of a final release"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Preview the next version only — no tag, no push, no trigger"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  cut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: next
+        run: |
+          latest=$(git tag -l 'v*.*.*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          latest=${latest:-v0.0.0}
+          IFS='.' read -r major minor patch <<< "${latest#v}"
+          case "${{ inputs.bump }}" in
+            major) target="v$((major + 1)).0.0" ;;
+            minor) target="v$major.$((minor + 1)).0" ;;
+            patch) target="v$major.$minor.$((patch + 1))" ;;
+          esac
+
+          if ${{ inputs.prerelease }}; then
+            last_rc=0
+            for t in $(git tag -l "${target}-rc*"); do
+              n="${t##*-rc}"
+              [ "$n" -gt "$last_rc" ] 2>/dev/null && last_rc="$n"
+            done
+            next="${target}-rc$((last_rc + 1))"
+          else
+            next="$target"
+          fi
+
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Preview only
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "Would tag **${{ steps.next.outputs.tag }}** (latest: ${{ steps.next.outputs.latest }}, target: ${{ steps.next.outputs.target }}) — dry run, nothing pushed." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create and push the tag
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git tag "${{ steps.next.outputs.tag }}"
+          git push origin "${{ steps.next.outputs.tag }}"
+
+      - name: Trigger the release workflows
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yaml --ref "${{ steps.next.outputs.tag }}"
+          gh workflow run release-windows.yaml --ref "${{ steps.next.outputs.tag }}"
