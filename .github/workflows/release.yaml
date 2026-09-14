@@ -118,8 +118,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*
+          archive: false
 
   release:
     needs: [version, gate, docker, binaries]
@@ -130,7 +130,7 @@ jobs:
       - name: Download binaries
         uses: actions/download-artifact@v8
         with:
-          pattern: binary-*
+          pattern: discord_instants_player_*
           path: dist
           merge-multiple: true
 
