@@ -18,6 +18,7 @@ func seedCache(t *testing.T, links ...string) []string {
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
 	dir := filepath.Join(home, ".instants")
 	if err := os.MkdirAll(dir, 0o755); err != nil {

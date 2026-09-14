@@ -143,6 +143,7 @@ func TestDirOrCreateUsesTheOverrideAndCreatesIt(t *testing.T) {
 func TestDirOrCreateFallsBackToHomeInstants(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
 	got, err := (&Cache{}).DirOrCreate()
 	if err != nil {
