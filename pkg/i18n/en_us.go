@@ -17,5 +17,4 @@ var enUS = map[string]string{
 	"bot.join.help":   "Calls the bot into the voice channel you're in",
 	"bot.help.help":   "Shows how to use the bot",
 	"bot.help.header": "Available commands:",
-	"bot.dm_refused":  "Sorry — I don't do DMs.",
 }

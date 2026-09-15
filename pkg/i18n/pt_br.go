@@ -17,5 +17,4 @@ var ptBR = map[string]string{
 	"bot.join.help":   "Chamar o bot para o canal de áudio em que você está",
 	"bot.help.help":   "Mostrar informações de utilização",
 	"bot.help.header": "Comandos disponíveis:",
-	"bot.dm_refused":  "Maninho, eu não funciono em mensagens privadas.",
 }
