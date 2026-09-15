@@ -46,6 +46,7 @@ func New(token string, player *instant.Player, options ...Option) (*Bot, error) 
 
 	b.disp.Register("!ping", "bot.ping.help", b.ping)
 	b.disp.Register("!join", "bot.join.help", b.join)
+	b.disp.Register("!leave", "bot.leave.help", b.leave)
 	b.disp.Register("!help", "bot.help.help", b.help)
 
 	for _, option := range options {

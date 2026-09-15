@@ -15,6 +15,7 @@ var enUS = map[string]string{
 
 	"bot.ping.help":   "Checks whether the bot is online",
 	"bot.join.help":   "Calls the bot into the voice channel you're in",
+	"bot.leave.help":  "Disconnects the bot from its current voice channel",
 	"bot.help.help":   "Shows how to use the bot",
 	"bot.help.header": "Available commands:",
 }
