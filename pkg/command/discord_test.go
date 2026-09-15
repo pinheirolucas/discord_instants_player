@@ -119,6 +119,25 @@ func TestGetHelpListsEveryRegisteredCommand(t *testing.T) {
 	}
 }
 
+func TestGetHelpListsCommandsInRegistrationOrder(t *testing.T) {
+	d := NewDiscordDispatcher()
+	d.Register("!ping", "responde pong", func(ctx *DiscordContext) {})
+	d.Register("!join", "entra no canal", func(ctx *DiscordContext) {})
+	d.Register("!leave", "sai do canal", func(ctx *DiscordContext) {})
+
+	help := d.GetHelp(language.BrazilianPortuguese)
+
+	pingIdx := strings.Index(help, "!ping")
+	joinIdx := strings.Index(help, "!join")
+	leaveIdx := strings.Index(help, "!leave")
+	if pingIdx == -1 || joinIdx == -1 || leaveIdx == -1 {
+		t.Fatalf("GetHelp() missing a registered command:\n%s", help)
+	}
+	if !(pingIdx < joinIdx && joinIdx < leaveIdx) {
+		t.Errorf("GetHelp() order = ping@%d, join@%d, leave@%d; want registration order", pingIdx, joinIdx, leaveIdx)
+	}
+}
+
 func TestGetHelpResolvesRealKeysPerLocale(t *testing.T) {
 	d := NewDiscordDispatcher()
 	d.Register("!ping", "bot.ping.help", func(ctx *DiscordContext) {})
