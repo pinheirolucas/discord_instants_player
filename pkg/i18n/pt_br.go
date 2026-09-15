@@ -15,6 +15,7 @@ var ptBR = map[string]string{
 
 	"bot.ping.help":   "Teste para verificar se o bot está online",
 	"bot.join.help":   "Chamar o bot para o canal de áudio em que você está",
+	"bot.leave.help":  "Desconectar o bot do canal de áudio em que ele está",
 	"bot.help.help":   "Mostrar informações de utilização",
 	"bot.help.header": "Comandos disponíveis:",
 }
