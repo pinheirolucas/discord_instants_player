@@ -27,25 +27,25 @@ func parseInviteCode(content string) (string, bool) {
 // handleInviteDM checks whether a DM's content is a Discord invite link and,
 // if so, resolves it and joins the target voice channel directly — bypassing
 // the guild member voice-state lookup !join relies on, which has nothing to
-// look up in a DM context. It reports whether the message was an invite link
-// (handled either way, success or failure), so the caller knows not to fall
-// through to the normal DM refusal.
-func (b *Bot) handleInviteDM(e *events.MessageCreate) bool {
+// look up in a DM context. Any DM that isn't an invite link, or an invite
+// that can't be resolved or doesn't target a voice channel, is silently
+// ignored.
+func (b *Bot) handleInviteDM(e *events.MessageCreate) {
 	code, ok := parseInviteCode(e.Message.Content)
 	if !ok {
-		return false
+		return
 	}
 
 	client := e.Client()
 	invite, err := client.Rest.GetInvite(code)
 	if err != nil {
 		slog.Error("failed to resolve invite", "Code", code, "err", err)
-		return true
+		return
 	}
 
 	if invite.Guild == nil || invite.Channel == nil {
 		slog.Info("invite has no voice channel target", "Code", code)
-		return true
+		return
 	}
 
 	if invite.Channel.Type != discord.ChannelTypeGuildVoice && invite.Channel.Type != discord.ChannelTypeGuildStageVoice {
@@ -53,9 +53,8 @@ func (b *Bot) handleInviteDM(e *events.MessageCreate) bool {
 			"Code", code,
 			"ChannelType", invite.Channel.Type,
 		)
-		return true
+		return
 	}
 
 	b.joinVoiceChannel(client, invite.Guild.ID, invite.Channel.ID, invite.Channel.Name)
-	return true
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
-	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/voice"
@@ -146,13 +145,7 @@ func (b *Bot) handleMessages(e *events.MessageCreate) {
 	}
 
 	if e.GuildID == nil {
-		if b.handleInviteDM(e) {
-			return
-		}
-
-		_, _ = e.Client().Rest.CreateMessage(e.ChannelID, discord.MessageCreate{
-			Content: i18n.Text(b.localeFor(e), "bot.dm_refused"),
-		})
+		b.handleInviteDM(e)
 		return
 	}
 
