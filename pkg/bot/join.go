@@ -4,6 +4,9 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/snowflake/v2"
+
 	"github.com/pinheirolucas/peace-breaker-bot/pkg/command"
 )
 
@@ -29,18 +32,27 @@ func (b *Bot) join(ctx *command.DiscordContext) {
 		return
 	}
 
-	if b.vc == nil {
-		conn := client.VoiceManager.CreateConn(guild.ID)
-		if err := conn.Open(context.Background(), *voiceState.ChannelID, false, true); err != nil {
-			slog.Error("failed to join voice channel",
-				"GuildID", guild.ID,
-				"GuildName", guild.Name,
-				"ChannelID", *voiceState.ChannelID,
-				"ChannelName", channel.Name(),
-				"err", err,
-			)
-			return
-		}
-		b.vc = conn
+	b.joinVoiceChannel(client, guild.ID, *voiceState.ChannelID, channel.Name())
+}
+
+// joinVoiceChannel connects to a voice channel already known by guild and
+// channel ID, shared by the !join command (which resolves the channel from
+// the invoking member's voice state) and the invite-link DM handler (which
+// resolves it from a resolved invite instead).
+func (b *Bot) joinVoiceChannel(client *bot.Client, guildID, channelID snowflake.ID, channelName string) {
+	if b.vc != nil {
+		return
 	}
+
+	conn := client.VoiceManager.CreateConn(guildID)
+	if err := conn.Open(context.Background(), channelID, false, true); err != nil {
+		slog.Error("failed to join voice channel",
+			"GuildID", guildID,
+			"ChannelID", channelID,
+			"ChannelName", channelName,
+			"err", err,
+		)
+		return
+	}
+	b.vc = conn
 }

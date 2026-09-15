@@ -146,6 +146,10 @@ func (b *Bot) handleMessages(e *events.MessageCreate) {
 	}
 
 	if e.GuildID == nil {
+		if b.handleInviteDM(e) {
+			return
+		}
+
 		_, _ = e.Client().Rest.CreateMessage(e.ChannelID, discord.MessageCreate{
 			Content: i18n.Text(b.localeFor(e), "bot.dm_refused"),
 		})
